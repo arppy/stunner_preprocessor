@@ -1,2 +1,1 @@
-# stunner_preprocessor
-Stunner Preprocessor
+# stunner preprocessor
