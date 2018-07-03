@@ -35,6 +35,11 @@ MIN_DIF_IN_ANDROID_AND_SERVER_TIME = 0
 MAX_DIF_IN_SERVERSAVE_AND_SERVER_TIME = 3600000  # 1 hour
 LAST_VALID_SERVER_DATE_FOR_FIRSTVERSION_OF_THE_DATA = 1417391999000  # 30 Nov 2014 23:59:59 GMT
 
+BATTERY_PLUGGED_STATE = set(['1', '2', '4'])
+BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
+BATTERY_STATUS_CHARGING = set(['2', '5'])
+BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
+
 INFILE_PATH = 'res/'
 OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
@@ -71,7 +76,7 @@ def determineUnkownValue(record):
   '''if record["connectionMode"] == -1 :
     record["discoveryResultCode"] = 9 '''
   try:
-    if ((record["batteryDTO"]["pluggedState"] == -1) and (record["batteryDTO"]["chargingState"] == 3 or record["batteryDTO"]["chargingState"] == 4)) :
+    if ((record["batteryDTO"]["pluggedState"] == -1) and (record["batteryDTO"]["chargingState"] in BATTERY_STATUS_NOT_CHARGING)) :
       record["batteryDTO"]["pluggedState"] = 0
   except:
     try:

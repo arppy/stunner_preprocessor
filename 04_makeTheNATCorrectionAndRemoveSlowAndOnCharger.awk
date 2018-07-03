@@ -50,6 +50,17 @@ function determine_connection_bandwidth(networkType) { #slow: 0 ; fast: 1;
 	}
 	return 0;
 }
+
+function isOnCharger(chargingState, pluggedinState){
+  if(chargingState == 2 || chargingState == 5) {
+    return 1;
+  }
+  if(pluggedinState == 1 || pluggedinState == 2 || pluggedinState == 4) {
+    return 1
+  }
+  return 0;
+}
+
 BEGIN{
   FS=";"
   OFS=";"
@@ -62,6 +73,9 @@ BEGIN{
   if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($32) == 0 ) {#remove_slow_mobilenetwork is a param{
     $16="-2"
     removedSlow++;
+  }
+  if(is_charging_important == 1 &&  isOnCharger($25,$22) == 0 ){
+    $16="-2"
   }
   if(FNR==1){
     for(k=1; k<i; k++){

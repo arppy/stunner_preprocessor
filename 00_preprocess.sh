@@ -9,9 +9,13 @@ is_add_delay=false;
 is_append_nat=false;
 is_drop_short_session=false
 is_create_onedaylong_period=false
-is_remove_slow_mobilenetwork=false
+is_remove_slow_mobilenetwork=0
 is_drop_100percent_offline_session=false
+is_charging_important=0
 for param in $*; do
+  if [ $param = chargingStateOnCharger -o $param = onCharger ]; then
+    is_charging_important=1;
+  fi
   if [ $param = addDelay  ]; then
     is_add_delay=true;
   fi
@@ -28,7 +32,7 @@ for param in $*; do
     is_drop_short_session=true;
   fi
   if [ $param = removeSlow -o $param = removeSlowMobileNetwork ]; then
-    is_remove_slow_mobilenetwork=true
+    is_remove_slow_mobilenetwork=1
   fi
 done
 mkdir out
@@ -43,11 +47,7 @@ python3 03_correct_android_time.py
 #rm -r out
 #mv out3 out
 mkdir out4
-if [ $is_remove_slow_mobilenetwork = true ]; then
-  ./04_makeTheNATCorrection.awk -v remove_slow_mobilenetwork=1 out3/*
-else
-  ./04_makeTheNATCorrection.awk -v remove_slow_mobilenetwork=0 out3/*
-fi
+./04_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" -v is_charging_important="$is_charging_important" out3/*
 #rm -r "out"
 #mv out4 out
 ./05_1_createSessionsWithNAT.awk out4/* > peersim_session_NAT.txt
