@@ -36,48 +36,48 @@ for param in $*; do
   fi
 done
 mkdir out
-python3 01_json_to_csv.py
+python3 0010_json_to_csv.py
 rm out/null 2> /dev/null
 mkdir out2
-python3 02_sort_by_android_time.py
+python3 0020_sort_by_android_time.py
 #rm -r out
 #mv out2 out
 mkdir out3
-python3 03_correct_android_time.py
+python3 0030_correct_android_time.py
 #rm -r out
 #mv out3 out
 mkdir out4
-./04_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" -v is_charging_important="$is_charging_important" out3/*
+./0040_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" -v is_charging_important="$is_charging_important" out3/*
 #rm -r "out"
 #mv out4 out
-./05_1_createSessionsWithNAT.awk out4/* > peersim_session_NAT.txt
+./0051_createSessionsWithNAT.awk out4/* > peersim_session_NAT.txt
 rm -r out 2> /dev/null
 rm -r out2 2> /dev/null
 rm -r out3 2> /dev/null
 rm -r out4 2> /dev/null
 cat peersim_session_NAT.txt > peersim_session_NATd.txt
 if [ $is_append_nat = true ]; then
-  ./05_2_appendSimilarNATtypes.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
+  ./0052_appendSimilarNATtypes.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
   cat peersim_session_NATdbac.txt > peersim_session_NATd.txt
   rm peersim_session_NATdbac.txt
 fi
 if [ $is_add_delay = true ]; then
-  ./06_add_connection_establishment_offline_sessions.awk -v delay=10000 peersim_session_NATd.txt > peersim_session_NATdbac.txt
+  ./0060_add_connection_establishment_offline_sessions.awk -v delay=10000 peersim_session_NATd.txt > peersim_session_NATdbac.txt
   cat peersim_session_NATdbac.txt > peersim_session_NATd.txt
   rm peersim_session_NATdbac.txt
 fi
 if [ $is_drop_short_session = true ]; then  
-  ./07_drop_short_sessions.awk -v threshold=86400000 peersim_session_NATd.txt > peersim_session_NATdbac.txt
+  ./0070_drop_short_sessions.awk -v threshold=86400000 peersim_session_NATd.txt > peersim_session_NATdbac.txt
   cat peersim_session_NATdbac.txt > peersim_session_NATd.txt
   rm peersim_session_NATdbac.txt
 fi
 if [ $is_create_onedaylong_period = true ]; then  
-  ./08_create_daylong_periods.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
+  ./0080_create_daylong_periods.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
   cat peersim_session_NATdbac.txt > peersim_session_NATd.txt
   rm peersim_session_NATdbac.txt
 fi
 if [ $is_drop_100percent_offline_session = true ]; then
-  ./09_drop_100percent_offline_sessions.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
+  ./0090_drop_100percent_offline_sessions.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt
   cat peersim_session_NATdbac.txt > peersim_session_NATd.txt
   rm peersim_session_NATdbac.txt
 fi
