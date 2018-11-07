@@ -12,6 +12,9 @@ except ImportError:
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
+V21_RELEASEDATE = 1540944002000 #21 (2.0.1) 31 Okt 2018 
+V20_RELEASEDATE = 1540771202000 #20 (2.0.0) 29 Okt 2018 
+V19_RELEASEDATE = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released
 V18_RELEASEDATE = 1526083200000 #18 (1.2.3) 12 May 2018 
 V17_RELEASEDATE = 1524441600000 #17 (1.2.2) 23 Apr 2018 
 V16_RELEASEDATE = 1524268800000 #16 (1.2.1) 21 Apr 2018 
@@ -146,7 +149,60 @@ def toBatteryDTOString(record):
   return tostring
 
 
-def toString(record):
+def toStringV2(record):
+  tostring = '' + str(record["fileCreationDate"])  # $1
+  tostring += ';' + str(record["serverSideUploadDate"])  # $2
+  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["androidID"])))) # $3
+  tostring += ';' + str(record["recordID"])  # $4
+  tostring += ';' + replaceNullNA(str(record["timeStamp"]))  # $5
+  maxTimestamp(record["timeStamp"])
+  tostring += ';' + str(record["timeZoneUTCOffset"])  # $6
+  tostring += ';' + str(record["triggerCode"])  # $7
+  tostring += ';' + str(record["androidVersion"])  # $8
+  tostring += ';' + str(record["appVersion"])  # $9
+  tostring += ';' + str(record["connectionMode"])  # $10
+  tostring += ';' + str(record["networkInfo"])  # $11
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["localIP"])))  # $12
+  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["macAddress"]))))  # $13
+  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["ssid"]))))  # $14
+  tostring += ';' + str(record["wifiDTO"]["state"])  # $15
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiDTO"]["bandwidth"])))  # $16
+  tostring += ';' + str(record["wifiDTO"]["rssi"])  # $17
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["carrier"])))  # $18
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkType"])))  # $19
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkCountryIso"])))  # $20
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["simCountryIso"])))  # $21
+  tostring += ';' + str(record["mobileDTO"]["roaming"])  # $22
+  tostring += ';' + str(record["mobileDTO"]["phoneType"])  # $23
+  tostring += ';' + str(record["mobileDTO"]["airplane"])  # $24
+  tostring += ';' + str(record["natResultsDTO"]["discoveryResult"])  # $25
+  tostring += ';' + str(record["natResultsDTO"]["exitStatus"])  # $26
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["publicIP"])))  # $27
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["STUNserver"])))  # $28
+  tostring += ';' + replaceNullNA(str(record["natResultsDTO"]["lastDiscovery"]))  # $29
+  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionStart"]))  # $30
+  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionEnd"]))  # $31
+  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelOpen"]))  # $32
+  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelClosed"]))  # $33
+  tostring += ';' + str(record["webRTCResultsDTO"]["exitStatus"])  # $34
+  tostring += ';' + replaceNullNA(str(record["lastDisconnect"]))  # $35
+  tostring += ';' + str(record["batteryDTO"]["chargingState"])  # $36
+  tostring += ';' + str(record["batteryDTO"]["pluggedState"])  # $37
+  tostring += ';' + str(record["batteryDTO"]["percentage"])  # $38
+  tostring += ';' + str(record["batteryDTO"]["health"])  # $39
+  tostring += ';' + str(record["batteryDTO"]["present"])  # $40
+  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["batteryDTO"]["technology"])))  # $41
+  tostring += ';' + str(record["batteryDTO"]["temperature"])  # $42
+  tostring += ';' + str(record["batteryDTO"]["voltage"])  # $43
+  tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["turnOnTimestamp"]))  # $44
+  tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["shutDownTimestamp"]))  # $45
+  tostring += ';' + str(record["uptimeInfoDTO"]["uptime"])  # $46
+  tostring += ';' + replaceNullNA(str(record["latitude"]))  # $47
+  tostring += ';' + replaceNullNA(str(record["longitude"]))  # $48
+  tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
+
+
+def toStringV1(record):
   tostring = '' + str(rowPerUser[record["deviceHash"]]) # $1
   tostring += ';' + str(differentServerTimePerUser[record["deviceHash"]])  # $2
   tostring += ';' + str(record["fileCreationDate"])  # $3
@@ -255,6 +311,8 @@ def whatTheTime(lastTime):
   print("elapsed: ", time.time() - lastTime)
   return time.time()
 
+def removeLastCharsFromString(inputHashedString):
+  return inputHashedString[:-10]
 
 def replaceProblematicChars(inputString):
   niceString = inputString.replace('\'', '')
@@ -283,6 +341,12 @@ def replaceProblematicChars(inputString):
   niceString = niceString.replace('""TaiwanMobile""', '"TaiwanMobile"')
   niceString = niceString.replace("/", "").replace("+", "").replace("=", "").replace("?", "").replace(" ", "")
   return niceString
+
+def replaceNullNA(inputString):
+  if inputString is "N/A" or "NA" or "null" or "0" or "0L" or "0.0":
+    return ""
+  else: 
+    return inputString
 
 print("JSON TO CSV START")
 # MAIN
@@ -367,13 +431,23 @@ for fileName in files:
                        (appVersion == 11 and V11_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 12 and V12_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 13 and V13_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 14 and V14_RELEASEDATE < int(record["timeStamp"])) ) :
+                       (appVersion == 14 and V14_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 15 and V15_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 16 and V16_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 17 and V17_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 18 and V18_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 19 and V19_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 20 and V20_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 21 and V21_RELEASEDATE < int(record["timeStamp"])) ) :
                     rowPerUser[userName] +=1
                     if previousValidUploadDate[userName] != serverSideUploadDate :
                       differentServerTimePerUser[userName] += 1
                       previousValidUploadDate[userName] = serverSideUploadDate
                       record["previousValidUploadDate"] = previousValidUploadDate[userName]
-                    outstr = toString(record)  
+                    if appVersion > 19 :
+                      outstr = toStringV2(record)
+                    else :    
+                      outstr = toStringV1(record)  
                     file = open('' + OUTFILE_PATH + userName, "a+", encoding="utf-8")
                     file.write('' + outstr + '\n')
                     file.close()
