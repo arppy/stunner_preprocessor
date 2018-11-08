@@ -12,9 +12,11 @@ except ImportError:
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
+
+
 V21_RELEASEDATE = 1540944002000 #21 (2.0.1) 31 Okt 2018 
 V20_RELEASEDATE = 1540771202000 #20 (2.0.0) 29 Okt 2018 
-V19_RELEASEDATE = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released
+V19_RELEASEDATE = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released, development version
 V18_RELEASEDATE = 1526083200000 #18 (1.2.3) 12 May 2018 
 V17_RELEASEDATE = 1524441600000 #17 (1.2.2) 23 Apr 2018 
 V16_RELEASEDATE = 1524268800000 #16 (1.2.1) 21 Apr 2018 
@@ -34,7 +36,8 @@ V3_RELEASEDATE = 1390262400000 #  3 (1.0.3) 2014. jan. 21.
 V2_RELEASEDATE = 1388966400000 #  2 (1.0.1) 2014. jan. 6.
 V1_RELEASEDATE = 1387497600000 #  1 (1.0.0) 2013. dec. 20.
 
-MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk=\n"
+#MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk=\n"
+MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk\u003d"
 FIRST_VALID_ANDROID_DATE = 1396571221202  # 2014 04 04 00 27 01
 # MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 691200000 # 8 day
 MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 604800000  # 7 day
@@ -42,13 +45,14 @@ MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 604800000  # 7 day
 MIN_DIF_IN_ANDROID_AND_SERVER_TIME = 0
 MAX_DIF_IN_SERVERSAVE_AND_SERVER_TIME = 3600000  # 1 hour
 LAST_VALID_SERVER_DATE_FOR_FIRSTVERSION_OF_THE_DATA = 1417391999000  # 30 Nov 2014 23:59:59 GMT
+DEVELOPMENT_VERSIONS = set([19])
 
 BATTERY_PLUGGED_STATE = set(['1', '2', '4'])
 BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
 BATTERY_STATUS_CHARGING = set(['2', '5'])
 BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 
-INFILE_PATH = 'res/res_v1'
+INFILE_PATH = 'res/res_v1/'
 OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
 STUNNER_APP_ID = 'hu.uszeged.inf.wlab.stunner'
@@ -151,7 +155,7 @@ def toBatteryDTOString(record):
 
 def toStringV2(record):
   tostring = '' + str(record["fileCreationDate"])  # $1
-  tostring += ';' + str(record["serverSideUploadDate"])  # $2
+  tostring += ';' + replaceNullNA(str(record["serverSideUploadDate"]))  # $2
   tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["androidID"])))) # $3
   tostring += ';' + str(record["recordID"])  # $4
   tostring += ';' + replaceNullNA(str(record["timeStamp"]))  # $5
@@ -200,7 +204,7 @@ def toStringV2(record):
   tostring += ';' + replaceNullNA(str(record["latitude"]))  # $47
   tostring += ';' + replaceNullNA(str(record["longitude"]))  # $48
   tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
-
+  return tostring
 
 def toStringV1(record):
   tostring = '' + str(rowPerUser[record["deviceHash"]]) # $1
@@ -343,8 +347,8 @@ def replaceProblematicChars(inputString):
   return niceString
 
 def replaceNullNA(inputString):
-  if inputString is "N/A" or "NA" or "null" or "0" or "0L" or "0.0":
-    return ""
+  if inputString == "N/A" or inputString == "NA" or inputString == "null" or inputString == "0" or inputString == "0L" or inputString == "0.0":
+    return ''
   else: 
     return inputString
 
@@ -380,7 +384,7 @@ for fileName in files:
           #record = replaceProblematicChars(record)  
           if i == 0 :
             try:
-              serverSideUploadDate = int(record)
+              serverSideUploadDate = int(record)                
             except :
               serverSideUploadDate = -1
           if i == 1 :
@@ -412,12 +416,16 @@ for fileName in files:
                 record["deviceHash"] = userName
                 record["platform"] = platform
                 try:
-                  difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
+                  if(int(record["serverSideUploadDate"]) == 0) :
+                    difInServerAndAndroidTime = 0
+                  else :
+                    difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
                   try:
                     appVersion = int(record["appVersion"]);
                   except:
                     appVersion = 1;    
                   if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
+                     appVersion not in DEVELOPMENT_VERSIONS and \
                      ( (appVersion == 1 and V1_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 2 and V2_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 3 and V3_RELEASEDATE < int(record["timeStamp"])) or \
@@ -448,16 +456,17 @@ for fileName in files:
                       outstr = toStringV2(record)
                     else :    
                       outstr = toStringV1(record)  
-                    file = open('' + OUTFILE_PATH + userName, "a+", encoding="utf-8")
+                    file = open('' + OUTFILE_PATH + userName , "a+", encoding="utf-8")
                     file.write('' + outstr + '\n')
                     file.close()
                     # print(previousValidUploadDate[userName], serverSideUploadDate)
                   else :
                     allFiltered += 1
-                  # print('Too OLD version of JSON!',allFiltered/allRecord, userName, line)
-                except :
+                    #print('Too OLD version of JSON!',fileName,str(appVersion),record["timeStamp"],\
+                    #      str(difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME),str(difInServerAndAndroidTime),str(record["serverSideUploadDate"]))
+                except Exception as e :
                   allFiltered += 1
-                  print('Missing Record! ',str(fileName), str(allFiltered / allRecord), str(userName), str(record), str(line))  
+                  print('Missing Record! ',str(fileName), str(allFiltered / allRecord), str(userName), str(line),type(e), e, e.args )  
               except ValueError:  
                 if i>=4 :
                   allFiltered += 1
