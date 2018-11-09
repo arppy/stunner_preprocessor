@@ -19,15 +19,20 @@ PORTRESTRICTED_NAT_TYPES =  set(['4'])
 OPEN_NAT_TYPES = set(['0', '3'])
 
 CONNECTION_TRIGER = set(['1', '7', '8'])
-SYSTEM_TRIGER = set(['6', '9'])
-BATTERY_AND_OTHER_TRIGER = set(['-1', '0', '2', '3', '4', '5'])
+SYSTEM_TRIGER = set(['6', '10', '14', '16', '19'])
+BATTERY_TRIGER = set(['2', '3', '4'])
+OTHER_TRIGER = set(['-1', '0', '5', '9', '11', '13', '15', '17', '18'])
 
 BATTERY_PLUGGED_STATE = set(['1', '2', '4'])
 BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
 BATTERY_STATUS_CHARGING = set(['2', '5'])
 BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 
-VERSIONS_STUN_SERVER_OK = set(['14'])
+VERSIONS_SINCE_STUN_SERVER_OK = 14
+VERSIONS_SINCE_VERSION_2 = 20
+
+DEVELOPMENT_VERSIONS = set([19])
+
 
 FIRST_VALID_ANDROID_DATE = 1396571221202 # 2014 04 04 00 27 01
 #MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 691200000 # 8 day
@@ -71,14 +76,23 @@ def toString(originRow,record,numOfLinesPerUser):
   outStr+=str(numOfLinesPerUser)
   return outStr
 
+def toString(record):
+  for item in record:
+    outStr+=item+";"
+  return outStr[:-1]
+
+def denoteRecordID(line):
+  return line[3]
+
 #MAIN
 
 lastTime = time.time()
 lastTime = whatTheTime(lastTime)
 #FILE_READING
 path = INFILE_PATH
-user = defaultdict(dict)
-times = []
+userV1 = defaultdict(dict)
+timesV1 = []
+userV2 = []
 outList = []
 numOfRecordAll = 0.0
 numOfExaminedRecordAll = 0.0
@@ -88,21 +102,27 @@ numberOfDeletedDuplicated = 0.0
 for fileName in os.listdir(path):
   with open(''+path+fileName) as csvfile:
     stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
+    i = 1
     for line in stunnerReader:
-      times.append((line[11],line[0]))
-      user[line[0]]=line[1:]
-    times.sort()
+      appVersion = int(line[8])
+      if appVersion >= VERSIONS_SINCE_VERSION_2:
+        userV2.append(line)
+      else :  
+        timesV1.append((line[11],line[0]))
+        userV1[line[0]]=line[1:]
+    timesV1.sort()
+    userV2.sort(key=denoteRecordID)
     numOfLinesPerUser=0
     numOfExaminedLinesPerUser=0
-    if len(times) > 0 :
+    if len(timesV1) > 0 :
       prevPrintedOriginRow = -1
       prevOriginRow = -1
       numOfChange = 0.0
-      for atuple in times:
+      for atuple in timesV1:
         numOfExaminedLinesPerUser+=1
         if int(prevOriginRow) > -1 :
-          if user[prevOriginRow] != user[atuple[1]] : 
-            if user[prevOriginRow][10] == user[atuple[1]][10] :
+          if userV1[prevOriginRow] != userV1[atuple[1]] : 
+            if userV1[prevOriginRow][10] == userV1[atuple[1]][10] :
               dif1=""
               dif2=""
               empty1=0
@@ -110,24 +130,24 @@ for fileName in os.listdir(path):
               stopIndex=0
               equal = True  
               equalAtEveryPostion = True
-              for j in range(7, len(user[atuple[1]])):
+              for j in range(7, len(userV1[atuple[1]])):
                 comparable = True
                 bothEmpty = False
-                if user[prevOriginRow][j] == "" :
+                if userV1[prevOriginRow][j] == "" :
                   empty1+=1
                   comparable = False
-                if user[atuple[1]][j] == "" :
+                if userV1[atuple[1]][j] == "" :
                   if comparable == False :
                     bothEmpty = True
                     empty1-=1
                   else :
                     empty2+=1
                     comparable = False
-                if user[prevOriginRow][j] != user[atuple[1]][j] :
+                if userV1[prevOriginRow][j] != userV1[atuple[1]][j] :
                   equalAtEveryPostion = False  
-                if comparable == True and user[prevOriginRow][j] != user[atuple[1]][j] :
-                  dif1=user[prevOriginRow][j]
-                  dif2=user[atuple[1]][j]
+                if comparable == True and userV1[prevOriginRow][j] != userV1[atuple[1]][j] :
+                  dif1=userV1[prevOriginRow][j]
+                  dif2=userV1[atuple[1]][j]
                   stopIndex=j
                   equal = False
                   break
@@ -137,154 +157,154 @@ for fileName in os.listdir(path):
                     prevOriginRow = atuple[1]
                   numberOfDeletedDuplicated+=1.0 
                 else :
-                  if user[prevOriginRow][35] != user[atuple[1]][35] and user[prevOriginRow][35] == "7":
+                  if userV1[prevOriginRow][35] != userV1[atuple[1]][35] and userV1[prevOriginRow][35] == "7":
                     if int(prevPrintedOriginRow) > -1 :
-                      if int(user[prevPrintedOriginRow][0]) > int(user[prevOriginRow][0]) : 
+                      if int(userV1[prevPrintedOriginRow][0]) > int(userV1[prevOriginRow][0]) : 
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(prevOriginRow,user[prevOriginRow],numOfLinesPerUser)+'\n')
+                    file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
                     prevOriginRow = atuple[1]
-                  elif user[prevOriginRow][35] != user[atuple[1]][35] and user[atuple[1]][35] == "7":
+                  elif userV1[prevOriginRow][35] != userV1[atuple[1]][35] and userV1[atuple[1]][35] == "7":
                     if int(prevPrintedOriginRow) > -1 :
-                      if int(user[prevPrintedOriginRow][0]) > int(user[atuple[1]][0]) : 
+                      if int(userV1[prevPrintedOriginRow][0]) > int(userV1[atuple[1]][0]) : 
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(atuple[1],user[atuple[1]],numOfLinesPerUser)+'\n')
+                    file.write(''+toString(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(atuple[1])
                     prevOriginRow = prevOriginRow
-                  elif user[prevOriginRow][8] != user[atuple[1]][8] and \
-                    user[prevOriginRow][8] == "NA" and user[atuple[1]][8] != "NA": 
+                  elif userV1[prevOriginRow][8] != userV1[atuple[1]][8] and \
+                    userV1[prevOriginRow][8] == "NA" and userV1[atuple[1]][8] != "NA": 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][8] != user[atuple[1]][8] and \
-                    user[prevOriginRow][8] != "NA" and user[atuple[1]][8] == "NA": 
+                  elif userV1[prevOriginRow][8] != userV1[atuple[1]][8] and \
+                    userV1[prevOriginRow][8] != "NA" and userV1[atuple[1]][8] == "NA": 
                     prevOriginRow = prevOriginRow
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][8] != user[atuple[1]][8] and \
-                  user[prevOriginRow][8] == user[prevPrintedOriginRow][8] and user[atuple[1]][8] != user[prevPrintedOriginRow][8] :
+                  elif userV1[prevOriginRow][8] != userV1[atuple[1]][8] and \
+                  userV1[prevOriginRow][8] == userV1[prevPrintedOriginRow][8] and userV1[atuple[1]][8] != userV1[prevPrintedOriginRow][8] :
                     if int(prevPrintedOriginRow) > -1 :
-                      if int(user[prevPrintedOriginRow][0]) > int(user[prevOriginRow][0]) : 
+                      if int(userV1[prevPrintedOriginRow][0]) > int(userV1[prevOriginRow][0]) : 
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(prevOriginRow,user[prevOriginRow],numOfLinesPerUser)+'\n')
+                    file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
                     prevOriginRow = atuple[1]
-                  elif user[prevOriginRow][8] != user[atuple[1]][8] and \
-                  user[prevOriginRow][8] != user[prevPrintedOriginRow][8] and user[atuple[1]][8] == user[prevPrintedOriginRow][8] : 
+                  elif userV1[prevOriginRow][8] != userV1[atuple[1]][8] and \
+                  userV1[prevOriginRow][8] != userV1[prevPrintedOriginRow][8] and userV1[atuple[1]][8] == userV1[prevPrintedOriginRow][8] : 
                     if int(prevPrintedOriginRow) > -1 :
-                      if int(user[prevPrintedOriginRow][0]) > int(user[atuple[1]][0]) : 
+                      if int(userV1[prevPrintedOriginRow][0]) > int(userV1[atuple[1]][0]) : 
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(atuple[1],user[atuple[1]],numOfLinesPerUser)+'\n')
+                    file.write(''+toString(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(atuple[1])
                     prevOriginRow = prevOriginRow
-                  elif user[prevOriginRow][14] != user[atuple[1]][14] :
-                    if user[atuple[1]][36] not in VERSIONS_STUN_SERVER_OK and user[atuple[1]][14] == "1" :
+                  elif userV1[prevOriginRow][14] != userV1[atuple[1]][14] :
+                    if userV1[atuple[1]][36] not in VERSIONS_STUN_SERVER_OK and userV1[atuple[1]][14] == "1" :
                       prevOriginRow = prevOriginRow 
-                    elif user[prevOriginRow][36] not in VERSIONS_STUN_SERVER_OK and user[prevOriginRow] == "1" :
+                    elif userV1[prevOriginRow][36] not in VERSIONS_STUN_SERVER_OK and userV1[prevOriginRow] == "1" :
                       prevOriginRow = atuple[1]
-                    elif user[atuple[1]][14] in OFFLINE_NAT_TYPES :
-                      user[atuple[1]][14] = "-2"
+                    elif userV1[atuple[1]][14] in OFFLINE_NAT_TYPES :
+                      userV1[atuple[1]][14] = "-2"
                       prevOriginRow = atuple[1]
-                    elif user[prevOriginRow][14] in OFFLINE_NAT_TYPES :
-                      user[prevOriginRow][14] = "-2"
+                    elif userV1[prevOriginRow][14] in OFFLINE_NAT_TYPES :
+                      userV1[prevOriginRow][14] = "-2"
                       prevOriginRow = prevOriginRow 
-                    elif (user[atuple[1]][14] in SYMMETRIC_NAT_TYPES and \
-                         (user[prevOriginRow][14] in OPEN_NAT_TYPES or user[prevOriginRow][14] in RESTRICTED_NAT_TYPES or user[prevOriginRow][14] in PORTRESTRICTED_NAT_TYPES) ) or \
-                        (user[atuple[1]][14] in PORTRESTRICTED_NAT_TYPES and (user[prevOriginRow][14] in OPEN_NAT_TYPES or user[prevOriginRow][14] in RESTRICTED_NAT_TYPES) ) or \
-                        (user[atuple[1]][14] in RESTRICTED_NAT_TYPES and user[atuple[1]][14] in OPEN_NAT_TYPES) :
+                    elif (userV1[atuple[1]][14] in SYMMETRIC_NAT_TYPES and \
+                         (userV1[prevOriginRow][14] in OPEN_NAT_TYPES or userV1[prevOriginRow][14] in RESTRICTED_NAT_TYPES or userV1[prevOriginRow][14] in PORTRESTRICTED_NAT_TYPES) ) or \
+                        (userV1[atuple[1]][14] in PORTRESTRICTED_NAT_TYPES and (userV1[prevOriginRow][14] in OPEN_NAT_TYPES or userV1[prevOriginRow][14] in RESTRICTED_NAT_TYPES) ) or \
+                        (userV1[atuple[1]][14] in RESTRICTED_NAT_TYPES and userV1[atuple[1]][14] in OPEN_NAT_TYPES) :
                       prevOriginRow = atuple[1]
                     else :  
                       prevOriginRow = prevOriginRow
                     numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][35] != user[atuple[1]][35] and \
-                  user[atuple[1]][35] in CONNECTION_TRIGER and user[prevOriginRow][35] not in CONNECTION_TRIGER :
+                  elif userV1[prevOriginRow][35] != userV1[atuple[1]][35] and \
+                  userV1[atuple[1]][35] in CONNECTION_TRIGER and userV1[prevOriginRow][35] not in CONNECTION_TRIGER :
                     #if the rec == connection trigger and the prev wont  
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][35] != user[atuple[1]][35] and \
-                  user[atuple[1]][35] not in CONNECTION_TRIGER and user[prevOriginRow][35] in CONNECTION_TRIGER :
+                  elif userV1[prevOriginRow][35] != userV1[atuple[1]][35] and \
+                  userV1[atuple[1]][35] not in CONNECTION_TRIGER and userV1[prevOriginRow][35] in CONNECTION_TRIGER :
                     #if the prev == connection trigger and the rec wont
                     prevOriginRow = prevOriginRow
                     numberOfDeletedDuplicated+=1.0 
-                  elif getMobileNetworkTypeState(user[atuple[1]][30]) < getMobileNetworkTypeState(user[prevOriginRow][30]) :
+                  elif getMobileNetworkTypeState(userV1[atuple[1]][30]) < getMobileNetworkTypeState(userV1[prevOriginRow][30]) :
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif getMobileNetworkTypeState(user[atuple[1]][30]) > getMobileNetworkTypeState(user[prevOriginRow][30]) :
+                  elif getMobileNetworkTypeState(userV1[atuple[1]][30]) > getMobileNetworkTypeState(userV1[prevOriginRow][30]) :
                     prevOriginRow = prevOriginRow
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][9] != user[atuple[1]][9] and \
-                    user[prevOriginRow][9] == "NA" and user[atupl[1]][9] != "NA": 
+                  elif userV1[prevOriginRow][9] != userV1[atuple[1]][9] and \
+                    userV1[prevOriginRow][9] == "NA" and userV1[atupl[1]][9] != "NA": 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][9] != user[atuple[1]][9] and \
-                    user[prevOriginRow][9] != "NA" and user[atuple[1]][9] == "NA": 
-                    prevOriginRow = prevOriginRow
-                    numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][11] != user[atuple[1]][11] and \
-                    float(user[prevOriginRow][11]) == 0.0 and float(user[atuple[1]][11]) != 0.0 :
-                    prevOriginRow = atuple[1]
-                    numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][11] != user[atuple[1]][11] and \
-                    float(user[prevOriginRow][11]) != 0.0 and float(user[atuple[1]][11]) == 0.0 :
-                    prevOriginRow = prevOriginRow
-                    numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][12] != user[atuple[1]][12] and \
-                    float(user[prevOriginRow][12]) == 0.0 and float(user[atuple[1]][12]) != 0.0 :
-                    prevOriginRow = atuple[1]
-                    numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][12] != user[atuple[1]][12] and \
-                    float(user[prevOriginRow][12]) != 0.0 and float(user[atuple[1]][12]) == 0.0 :
+                  elif userV1[prevOriginRow][9] != userV1[atuple[1]][9] and \
+                    userV1[prevOriginRow][9] != "NA" and userV1[atuple[1]][9] == "NA": 
                     prevOriginRow = prevOriginRow
                     numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][18] != user[atuple[1]][18] :
-                    if (user[prevOriginRow][18] in BATTERY_PLUGGED_STATE and user[prevOriginRow][23] in BATTERY_STATUS_CHARGING) or \
-                    (user[prevOriginRow][18] not in BATTERY_PLUGGED_STATE and user[prevOriginRow][23] not in BATTERY_STATUS_CHARGING) :
+                  elif userV1[prevOriginRow][11] != userV1[atuple[1]][11] and \
+                    float(userV1[prevOriginRow][11]) == 0.0 and float(userV1[atuple[1]][11]) != 0.0 :
+                    prevOriginRow = atuple[1]
+                    numberOfDeletedDuplicated+=1.0 
+                  elif userV1[prevOriginRow][11] != userV1[atuple[1]][11] and \
+                    float(userV1[prevOriginRow][11]) != 0.0 and float(userV1[atuple[1]][11]) == 0.0 :
+                    prevOriginRow = prevOriginRow
+                    numberOfDeletedDuplicated+=1.0 
+                  elif userV1[prevOriginRow][12] != userV1[atuple[1]][12] and \
+                    float(userV1[prevOriginRow][12]) == 0.0 and float(userV1[atuple[1]][12]) != 0.0 :
+                    prevOriginRow = atuple[1]
+                    numberOfDeletedDuplicated+=1.0 
+                  elif userV1[prevOriginRow][12] != userV1[atuple[1]][12] and \
+                    float(userV1[prevOriginRow][12]) != 0.0 and float(userV1[atuple[1]][12]) == 0.0 :
+                    prevOriginRow = prevOriginRow
+                    numberOfDeletedDuplicated+=1.0
+                  elif userV1[prevOriginRow][18] != userV1[atuple[1]][18] :
+                    if (userV1[prevOriginRow][18] in BATTERY_PLUGGED_STATE and userV1[prevOriginRow][23] in BATTERY_STATUS_CHARGING) or \
+                    (userV1[prevOriginRow][18] not in BATTERY_PLUGGED_STATE and userV1[prevOriginRow][23] not in BATTERY_STATUS_CHARGING) :
                       prevOriginRow = prevOriginRow
                       numberOfDeletedDuplicated+=1.0
                     else :  
                       prevOriginRow = atuple[1]
                       numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][13] != user[atuple[1]][13] : 
+                  elif userV1[prevOriginRow][13] != userV1[atuple[1]][13] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0       
-                  elif user[prevOriginRow][19] != user[atuple[1]][19] : 
+                  elif userV1[prevOriginRow][19] != userV1[atuple[1]][19] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0  
-                  elif user[prevOriginRow][20] != user[atuple[1]][20] : 
+                  elif userV1[prevOriginRow][20] != userV1[atuple[1]][20] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][21] != user[atuple[1]][21] : 
+                  elif userV1[prevOriginRow][21] != userV1[atuple[1]][21] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][24] != user[atuple[1]][24] : 
+                  elif userV1[prevOriginRow][24] != userV1[atuple[1]][24] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0
-                  elif user[prevOriginRow][26] != user[atuple[1]][26] : 
+                  elif userV1[prevOriginRow][26] != userV1[atuple[1]][26] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0  
-                  elif user[prevOriginRow][30] != user[atuple[1]][30] : 
+                  elif userV1[prevOriginRow][30] != userV1[atuple[1]][30] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0    
-                  elif user[prevOriginRow][34] != user[atuple[1]][34] : 
+                  elif userV1[prevOriginRow][34] != userV1[atuple[1]][34] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
-                  elif user[prevOriginRow][35] != user[atuple[1]][35] : 
+                  elif userV1[prevOriginRow][35] != userV1[atuple[1]][35] : 
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0   
                   else :
                     print("isEqual:"+str(equal)+"E1:"+str(empty1)+"E2:"+str(empty2)+"DiffAtIndex:"+str(stopIndex)+"=>"+dif1+"!="+dif2+"========================================================================================================================")
-                    print(user[atuple[1]])
-                    print(user[prevOriginRow])
+                    print(userV1[atuple[1]])
+                    print(userV1[prevOriginRow])
                     prevOriginRow = atuple[1]
                     numberOfDeletedDuplicated+=1.0 
               else :
@@ -292,12 +312,12 @@ for fileName in os.listdir(path):
                 numberOfDeletedDuplicated+=1.0       
             else :
               if int(prevPrintedOriginRow) > -1 :
-                if int(user[prevPrintedOriginRow][0]) > int(user[prevOriginRow][0]) :
-                #if int(user[prevPrintedOriginRow][0])+1 != int(user[prevOriginRow][0]) and int(user[prevPrintedOriginRow][0]) != int(user[prevOriginRow][0]) : #!TODO 
+                if int(userV1[prevPrintedOriginRow][0]) > int(userV1[prevOriginRow][0]) :
+                #if int(userV1[prevPrintedOriginRow][0])+1 != int(userV1[prevOriginRow][0]) and int(userV1[prevPrintedOriginRow][0]) != int(userV1[prevOriginRow][0]) : #!TODO 
                   numOfChange += 1.0
               numOfLinesPerUser+=1
               file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-              file.write(''+toString(prevOriginRow,user[prevOriginRow],numOfLinesPerUser)+'\n')
+              file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
               file.close()
               prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
               prevOriginRow = atuple[1]
@@ -308,19 +328,26 @@ for fileName in os.listdir(path):
           prevOriginRow = atuple[1] # first assignment    
       if int(prevOriginRow) > -1 :
         if int(prevPrintedOriginRow) > -1 :
-          if int(user[prevPrintedOriginRow][0]) > int(user[prevOriginRow][0]) : #!TODO 
+          if int(userV1[prevPrintedOriginRow][0]) > int(userV1[prevOriginRow][0]) : #!TODO 
             numOfChange += 1.0
         numOfLinesPerUser+=1
         file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-        file.write(''+toString(prevOriginRow,user[prevOriginRow],numOfLinesPerUser)+'\n')
+        file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
         file.close()
-      user.clear()
-      times.clear()
-      numOfUser+=1
-      numOfRecordAll+=numOfLinesPerUser
-      numOfExaminedRecordAll+=numOfExaminedLinesPerUser
-      if numOfUser%100==0 :
-        n = gc.collect()
+      
+    if len(userV2) > 0 :
+      for line in userV2 :
+        file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
+        file.write(''+toString(line)+'\n')
+        file.close()
+    userV1.clear()
+    timesV1.clear()
+    userV2.clear()
+    numOfUser+=1
+    numOfRecordAll+=numOfLinesPerUser
+    numOfExaminedRecordAll+=numOfExaminedLinesPerUser
+    if numOfUser%100==0 :
+      n = gc.collect()
     if numOfLinesPerUser > 1 :
       outList.append((numOfChange/(numOfLinesPerUser-1),[fileName,numOfLinesPerUser,numOfChange]))
     else:

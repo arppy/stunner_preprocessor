@@ -45,8 +45,9 @@ MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 604800000  # 7 day
 MIN_DIF_IN_ANDROID_AND_SERVER_TIME = 0
 MAX_DIF_IN_SERVERSAVE_AND_SERVER_TIME = 3600000  # 1 hour
 LAST_VALID_SERVER_DATE_FOR_FIRSTVERSION_OF_THE_DATA = 1417391999000  # 30 Nov 2014 23:59:59 GMT
-DEVELOPMENT_VERSIONS = set([19])
 
+DEVELOPMENT_VERSIONS = set([19])
+NOT_USED_TRIGGER_CODES = set([15,17])
 BATTERY_PLUGGED_STATE = set(['1', '2', '4'])
 BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
 BATTERY_STATUS_CHARGING = set(['2', '5'])
@@ -423,9 +424,14 @@ for fileName in files:
                   try:
                     appVersion = int(record["appVersion"]);
                   except:
-                    appVersion = 1;    
+                    appVersion = 1
+                  try:
+                    triggerCode = int(record["triggerCode"])
+                  except:
+                    triggerCode = 15  
                   if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
                      appVersion not in DEVELOPMENT_VERSIONS and \
+                     triggerCode not in NOT_USED_TRIGGER_CODES and \
                      ( (appVersion == 1 and V1_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 2 and V2_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 3 and V3_RELEASEDATE < int(record["timeStamp"])) or \
