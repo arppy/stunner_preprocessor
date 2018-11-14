@@ -33,6 +33,7 @@ VERSIONS_SINCE_VERSION_2 = 20
 
 DEVELOPMENT_VERSIONS = set([19])
 
+NAT_AND_WEBRTC_FIELDS = set([24,25,26,27,28,29,30,31,32,33])
 
 FIRST_VALID_ANDROID_DATE = 1396571221202 # 2014 04 04 00 27 01
 #MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 691200000 # 8 day
@@ -69,21 +70,26 @@ def whatTheTime(lastTime):
   print("elapsed: ",time.time() - lastTime)
   return time.time()
 
-def toString(originRow,record,numOfLinesPerUser):
+def toStringV1(originRow,record,numOfLinesPerUser):
   outStr=""+str(originRow)+";"
   for item in record:
     outStr+=item+";"
   outStr+=str(numOfLinesPerUser)
   return outStr
 
-def toString(record):
+def toStringV2(record):
+  outStr=""
   for item in record:
     outStr+=item+";"
   return outStr[:-1]
 
 def denoteRecordID(line):
-  return line[3]
+  return int(line[4])
 
+def isNatAndWebRtcdiscovery(line):
+  if(line[27] and line[30] and line[31]) :
+    return True
+  return False
 #MAIN
 
 lastTime = time.time()
@@ -104,7 +110,10 @@ for fileName in os.listdir(path):
     stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
     i = 1
     for line in stunnerReader:
-      appVersion = int(line[8])
+      try : 
+        appVersion = int(line[8])
+      except :
+        appVersion = VERSIONS_SINCE_VERSION_2-1
       if appVersion >= VERSIONS_SINCE_VERSION_2:
         userV2.append(line)
       else :  
@@ -114,10 +123,10 @@ for fileName in os.listdir(path):
     userV2.sort(key=denoteRecordID)
     numOfLinesPerUser=0
     numOfExaminedLinesPerUser=0
+    numOfChange = 0.0
+    prevPrintedOriginRow = -1
+    prevOriginRow = -1
     if len(timesV1) > 0 :
-      prevPrintedOriginRow = -1
-      prevOriginRow = -1
-      numOfChange = 0.0
       for atuple in timesV1:
         numOfExaminedLinesPerUser+=1
         if int(prevOriginRow) > -1 :
@@ -163,7 +172,7 @@ for fileName in os.listdir(path):
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
+                    file.write(''+toStringV1(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
                     prevOriginRow = atuple[1]
@@ -173,7 +182,7 @@ for fileName in os.listdir(path):
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
+                    file.write(''+toStringV1(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(atuple[1])
                     prevOriginRow = prevOriginRow
@@ -192,7 +201,7 @@ for fileName in os.listdir(path):
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
+                    file.write(''+toStringV1(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
                     prevOriginRow = atuple[1]
@@ -203,7 +212,7 @@ for fileName in os.listdir(path):
                         numOfChange += 1.0
                     numOfLinesPerUser+=1
                     file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-                    file.write(''+toString(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
+                    file.write(''+toStringV1(atuple[1],userV1[atuple[1]],numOfLinesPerUser)+'\n')
                     file.close()
                     prevPrintedOriginRow = copy.deepcopy(atuple[1])
                     prevOriginRow = prevOriginRow
@@ -317,7 +326,7 @@ for fileName in os.listdir(path):
                   numOfChange += 1.0
               numOfLinesPerUser+=1
               file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-              file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
+              file.write(''+toStringV1(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
               file.close()
               prevPrintedOriginRow = copy.deepcopy(prevOriginRow)
               prevOriginRow = atuple[1]
@@ -332,14 +341,36 @@ for fileName in os.listdir(path):
             numOfChange += 1.0
         numOfLinesPerUser+=1
         file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-        file.write(''+toString(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
+        file.write(''+toStringV1(prevOriginRow,userV1[prevOriginRow],numOfLinesPerUser)+'\n')
         file.close()
       
     if len(userV2) > 0 :
+      prevline = []
+      file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
       for line in userV2 :
-        file = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
-        file.write(''+toString(line)+'\n')
-        file.close()
+        numOfExaminedLinesPerUser += 1
+        isPrintPrevLine = True
+        isDropThisLine = False
+        if len(prevline)>0 and line[3] == prevline[3] :
+          isPrintPrevLine = False
+          for j in range(2,len(prevline)):
+            if j in NAT_AND_WEBRTC_FIELDS :
+              continue
+            if line[j] != prevline[j] :
+              isPrintPrevLine = True
+              break
+          if not isPrintPrevLine and isNatAndWebRtcdiscovery(prevline) and not isNatAndWebRtcdiscovery(line) :
+            isDropThisLine = True
+        if len(prevline)>0 and isPrintPrevLine :  
+          file.write(''+toStringV2(prevline)+'\n')
+          numOfLinesPerUser += 1
+        else :
+          numberOfDeletedDuplicated += 1 
+        if not isDropThisLine :
+          prevline = line;
+      file.write(''+toStringV2(prevline)+'\n')
+      file.close()
+      numOfLinesPerUser += 1  
     userV1.clear()
     timesV1.clear()
     userV2.clear()
