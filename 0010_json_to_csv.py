@@ -12,8 +12,10 @@ except ImportError:
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
-
-
+V25_RELEASEDATE = 1545004800000 #25 
+V24_RELEASEDATE = 1545004800000 #24 
+V23_RELEASEDATE = 1545004800000 #23 (2.0.3) 17 Dec 2018 
+V22_RELEASEDATE = 1543190400000 #22 (2.0.2) 26 Nov 2018 
 V21_RELEASEDATE = 1540944002000 #21 (2.0.1) 31 Okt 2018 
 V20_RELEASEDATE = 1540771202000 #20 (2.0.0) 29 Okt 2018 
 V19_RELEASEDATE = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released, development version
@@ -452,7 +454,11 @@ for fileName in files:
                        (appVersion == 18 and V18_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 19 and V19_RELEASEDATE < int(record["timeStamp"])) or \
                        (appVersion == 20 and V20_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 21 and V21_RELEASEDATE < int(record["timeStamp"])) ) :
+                       (appVersion == 21 and V21_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 22 and V22_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 23 and V23_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 24 and V24_RELEASEDATE < int(record["timeStamp"])) or \
+                       (appVersion == 25 and V25_RELEASEDATE < int(record["timeStamp"])) ) :
                     rowPerUser[userName] +=1
                     if previousValidUploadDate[userName] != serverSideUploadDate :
                       differentServerTimePerUser[userName] += 1

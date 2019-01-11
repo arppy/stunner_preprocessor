@@ -64,135 +64,173 @@ function isOnCharger(chargingState, pluggedinState){
 BEGIN{
   FS=";"
   OFS=";"
+  VERSIONS_SINCE_VERSION_2=20
+  ANDROID_VERSION_SINE_WITHOUT_BRODCAST=24
+  VERSION_2_IS_OK_SINCE=23
 }
 {
-  cm=int($17)
-  if(cm==-1){
-    $16="-2";
-  }
-  if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($32) == 0 ) {#remove_slow_mobilenetwork is a param{
-    $16="-2"
-    removedSlow++;
-  }
-  if(is_charging_important == 1 &&  isOnCharger($25,$22) == 0 ){
-    $16="-2"
-  }
-  if(FNR==1){
-    for(k=1; k<i; k++){
-      print(memory[k]) >> file
-    }
-    i=1
-    delete(memory) 
-    onlineLastSeenStateTimeStamp=""
-    onlineLastSeenIP=""
-    onlineLastSeenConnectionMod=""
-    onlineLastSeenDiscovery=""
-    discoveryMinus2=0;
-    lastStateTimeStamp=$12;
-    split(FILENAME,filename,"/")
-    file="out4/"filename[2]
-  }
-  if ($38 < 14) {   
-    sumOfAll++
-    deltaTime=int(($12-lastStateTimeStamp));
-    if(deltaTime>=0 && deltaTime<=1199999){ #regular online measurement: less then 19.99999999 min
-      regularTimeWindow=1;
-    } else {
-      regularTimeWindow=0;
-    }
-
-    drc=int($16)
-    tc=int($37)
-    ip=$10
-    if(drc!=-2 && drc!=-1 && drc!=1 && drc!=9 && drc!=13 && ip ~ /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/){ #online
-      online=1;
-    } else {
-      online=0;
-    }
-    if(onlineLastSeenStateTimeStamp && discoveryMinus2  && regularTimeWindow && onlineLastSeenConnectionMod==cm && tc!=1 && tc!=6 && tc!=7 && tc!=8 && tc!=9 ){ // no need to check online because we only use it after the online check 
-      secondOnline=1;
-    } else {
-      secondOnline=0;
-    }
-    if(online) {
-      if(secondOnline){
-        deltaOnlineTime=int(($12-onlineLastSeenStateTimeStamp)/60000);
-        if(cm==onlineLastSeenConnectionMod){
-          if( onlineLastSeenIP==ip ){
-            if(deltaOnlineTime<=50 && discoveryMinus2 <5 ){
-              sumOfExaminedOnlineSessions++
-              sumOfMinusTwoInOnlineSessions+=discoveryMinus2
-              statNumberOfSessionWithMinusTwoByNumber[discoveryMinus2]++
-              statNumberOfMinusTwoInOnlineSessionByNumber[discoveryMinus2]+=discoveryMinus2
-              statNumberOfSessionWithMinusTwoByTime[deltaOnlineTime]++
-              statNumberOfMinusTwoInOnlineSessionByTime[deltaOnlineTime]+=discoveryMinus2
-              if(onlineLastSeenConnectionMod==1) {
-                sumOfExaminedWifiSessions++
-                sumOfMinusTwoInWifiSessions+=discoveryMinus2
-              } else {
-                sumOfExaminedMobileSessions++
-                sumOfMinusTwoInMobileSessions+=discoveryMinus2
-              }
-              for(k=1; k<i; k++){
-                n=split(memory[k], line, ";")
-                line[10]=ip #publicIP
-                line[11]=$11 #localIP
-                line[16]=drc #discoveryResultCode
-                line[26]=$26 #bandwidth
-                line[27]=$27 #SSID
-                line[28]=$28 #rssi
-                line[29]=$29 #Carrier
-                line[30]=$30 #simCountryIso
-                line[31]=$31 #networkType
-                line[32]=$32 #roaming
-                outString=line[1]
-                for(j=2; j<=n;j++){
-                  outString=outString";"line[j];
-                }
-                print(outString) >> file
-              }
-              i=1
-              delete(memory)
-            }
-          }
-        }
-      }
-      discoveryMinus2=0;
-      onlineLastSeenStateTimeStamp=$12;
-      onlineLastSeenConnectionMod=cm;
-      onlineLastSeenDiscovery=drc;
-      onlineLastSeenIP=ip
-      for(k=1; k<i; k++){
-        print(memory[k]) >> file
-      }
-      i=1
-      delete(memory)
-      print($0) >> file
-    } else if (onlineLastSeenStateTimeStamp && drc==1 && cm==onlineLastSeenConnectionMod && regularTimeWindow && tc!=1 && tc!=6 && tc!=7 && tc!=8 && tc!=9) {
-      discoveryMinus2+=1;
-      memory[i]=$0
-      i++
-    } else {
-      onlineLastSeenStateTimeStamp=""
-      onlineLastSeenIP=""
-      onlineLastSeenConnectionMod=""
-      onlineLastSeenDiscovery=""
-      discoveryMinus2=0;
-      for(k=1; k<i; k++){
-        print(memory[k]) >> file
-      }
-      i=1
-      delete(memory)
-      print($0) >> file
-    }
-    lastStateTimeStamp=$12;
-  } else {
+  appversion=int($9)
+  if (appversion >= VERSIONS_SINCE_VERSION_2) {
+    andoridVersion=int($8)
+    #if ( $25 != -3) {
+    #  cm=int($10)
+    #  if(cm==-1){
+    #    $25="-2";
+    #  }
+    #  discoveryExitStatus=int($26)
+    #  if(discoveryExitStatus!=0) {
+    #    $25="-2";
+    #  }
+    #  if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($19) == 0) {#remove_slow_mobilenetwork is a param{
+    #    $25="-2"
+    #    removedSlow++;
+    #  }
+      #In this case, charging is basically important so we deal with it later
+      #if(is_charging_important == 1 &&  isOnCharger($36,$37) == 0){
+      #  $25="-2"
+      #}
+    #}
     for(k=1; k<i; k++){
       print(memory[k]) >> file
     }
     i=1
     delete(memory)
-    print($0) >> file
+    if(FNR==1){
+      split(FILENAME,filename,"/")
+      file="out4/"filename[2]
+    }
+    if (andoridVersion<ANDROID_VERSION_SINE_WITHOUT_BRODCAST || appversion >= VERSION_2_IS_OK_SINCE) { #without CONNECTION_LOST broadcast we do not have goes offline info
+      print($0) >> file
+    }
+  } else {
+    cm=int($17)
+    if(cm==-1){
+      $16="-2";
+    }
+    if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($32) == 0 ) {#remove_slow_mobilenetwork is a param{
+      $16="-2"
+      removedSlow++;
+    }
+    #if(is_charging_important == 1 &&  isOnCharger($25,$22) == 0 ){
+    #  $16="-2"
+    #}
+    if(FNR==1){
+      for(k=1; k<i; k++){
+        print(memory[k]) >> file
+      }
+      i=1
+      delete(memory) 
+      onlineLastSeenStateTimeStamp=""
+      onlineLastSeenIP=""
+      onlineLastSeenConnectionMod=""
+      onlineLastSeenDiscovery=""
+      discoveryMinus2=0;
+      lastStateTimeStamp=$12;
+      split(FILENAME,filename,"/")
+      file="out4/"filename[2]
+    }
+    if ($38 < 14) {   
+      sumOfAll++
+      deltaTime=int(($12-lastStateTimeStamp));
+      if(deltaTime>=0 && deltaTime<=1199999){ #regular online measurement: less then 19.99999999 min
+        regularTimeWindow=1;
+      } else {
+        regularTimeWindow=0;
+      }
+
+      drc=int($16)
+      tc=int($37)
+      ip=$10
+      if(drc!=-2 && drc!=-1 && drc!=1 && drc!=9 && drc!=13 && ip ~ /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/){ #online
+        online=1;
+      } else {
+        online=0;
+      }
+      if(onlineLastSeenStateTimeStamp && discoveryMinus2  && regularTimeWindow && onlineLastSeenConnectionMod==cm && tc!=1 && tc!=6 && tc!=7 && tc!=8 && tc!=9 ){ // no need to check online because we only use it after the online check 
+        secondOnline=1;
+      } else {
+        secondOnline=0;
+      }
+      if(online) {
+        if(secondOnline){
+          deltaOnlineTime=int(($12-onlineLastSeenStateTimeStamp)/60000);
+          if(cm==onlineLastSeenConnectionMod){
+            if( onlineLastSeenIP==ip ){
+              if(deltaOnlineTime<=50 && discoveryMinus2 <5 ){
+                sumOfExaminedOnlineSessions++
+                sumOfMinusTwoInOnlineSessions+=discoveryMinus2
+                statNumberOfSessionWithMinusTwoByNumber[discoveryMinus2]++
+                statNumberOfMinusTwoInOnlineSessionByNumber[discoveryMinus2]+=discoveryMinus2
+                statNumberOfSessionWithMinusTwoByTime[deltaOnlineTime]++
+                statNumberOfMinusTwoInOnlineSessionByTime[deltaOnlineTime]+=discoveryMinus2
+                if(onlineLastSeenConnectionMod==1) {
+                  sumOfExaminedWifiSessions++
+                  sumOfMinusTwoInWifiSessions+=discoveryMinus2
+                } else {
+                  sumOfExaminedMobileSessions++
+                  sumOfMinusTwoInMobileSessions+=discoveryMinus2
+                }
+                for(k=1; k<i; k++){
+                  n=split(memory[k], line, ";")
+                  line[10]=ip #publicIP
+                  line[11]=$11 #localIP
+                  line[16]=drc #discoveryResultCode
+                  line[26]=$26 #bandwidth
+                  line[27]=$27 #SSID
+                  line[28]=$28 #rssi
+                  line[29]=$29 #Carrier
+                  line[30]=$30 #simCountryIso
+                  line[31]=$31 #networkType
+                  line[32]=$32 #roaming
+                  outString=line[1]
+                  for(j=2; j<=n;j++){
+                    outString=outString";"line[j];
+                  }
+                  print(outString) >> file
+                }
+                i=1
+                delete(memory)
+              }
+            }
+          }
+        }
+        discoveryMinus2=0;
+        onlineLastSeenStateTimeStamp=$12;
+        onlineLastSeenConnectionMod=cm;
+        onlineLastSeenDiscovery=drc;
+        onlineLastSeenIP=ip
+        for(k=1; k<i; k++){
+          print(memory[k]) >> file
+        }
+        i=1
+        delete(memory)
+        print($0) >> file
+      } else if (onlineLastSeenStateTimeStamp && drc==1 && cm==onlineLastSeenConnectionMod && regularTimeWindow && tc!=1 && tc!=6 && tc!=7 && tc!=8 && tc!=9) {
+        discoveryMinus2+=1;
+        memory[i]=$0
+        i++
+      } else {
+        onlineLastSeenStateTimeStamp=""
+        onlineLastSeenIP=""
+        onlineLastSeenConnectionMod=""
+        onlineLastSeenDiscovery=""
+        discoveryMinus2=0;
+        for(k=1; k<i; k++){
+          print(memory[k]) >> file
+        }
+        i=1
+        delete(memory)
+        print($0) >> file
+      }
+      lastStateTimeStamp=$12;
+    } else {
+      for(k=1; k<i; k++){
+        print(memory[k]) >> file
+      }
+      i=1
+      delete(memory)
+      print($0) >> file
+    }
   }
 }
 END{  

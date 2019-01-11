@@ -11,16 +11,19 @@ BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 
 TIMEDIF_SAMESESSION = 3600000 # one hour
 
+VERSIONS_SINCE_VERSION_2 = 20
+
 OUTFILE_PATH = 'out3/'
 #INFILE_PATH = 'outErr/out/' #out2
-#INFILE_PATH = 'out2/'
-INFILE_PATH = 'out/'
+INFILE_PATH = 'out2/'
+#INFILE_PATH = 'out/'
 
 def toString(record,androidSortedValidation) :
   outStr=""+record[0]
   for item in record[1:] :
     outStr+=";"+str(item)
-  outStr+=";"+str(androidSortedValidation)  
+  if androidSortedValidation :
+    outStr+=";"+str(androidSortedValidation)  
   return outStr
 
 def whatTheTime(lastTime):
@@ -80,9 +83,47 @@ for fileName in os.listdir(path):
   outFile = open(''+OUTFILE_PATH+fileName, "a+", encoding="utf-8")
   outFileRemove = open(''+OUTFILE_PATH+fileName+"REMOVED", "a+", encoding="utf-8")
   with open(''+path+fileName) as csvfile:
-    for line in csv.reader(csvfile, delimiter=';', quotechar='|'):
+    lines = list(csv.reader(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, strict=True))     
+    for line in lines: 
       numOfAllRowPerThisUser+=1
-      if prevLine :
+      try : 
+        appVersion = int(line[8])
+      except :
+        appVersion = VERSIONS_SINCE_VERSION_2-1  
+      if appVersion >= VERSIONS_SINCE_VERSION_2:
+        if prevLine : # prevline form prev version => close everything and print
+          if isError == True :
+            printLine = printCandidateLines.popleft()
+            outFile.write(''+toString(printLine,-1)+'\n')
+            numOfPrinted+=1
+            while printCandidateLines :
+              printLine = printCandidateLines.popleft()
+              outFileRemove.write(''+toString(printLine,-2)+'\n')
+              numOfDeleted+=1
+            outFileRemove.write(''+toString(prevLine,-2)+'\n')
+            numOfDeleted+=1    
+          else :  
+            while printCandidateLines :
+              printLine = printCandidateLines.popleft()
+              outFile.write(''+toString(printLine,1)+'\n')
+              numOfPrinted+=1
+              if lastQuestionable == printLine :
+                break
+              else :
+                numOfQuestionable+=1
+            while printCandidateLines :
+              printLine = printCandidateLines.popleft()
+              outFile.write(''+toString(printLine,1)+'\n')
+              numOfPrinted+=1    
+            outFile.write(''+toString(prevLine,1)+'\n')
+            numOfPrinted+=1
+          isQuestionable = False
+          isError = False
+          lastQuestionable = []
+          prevLine = []
+        else :
+          outFile.write(''+toString(line,"")+'\n') 
+      elif prevLine :
         if int(line[11]) - int(prevLine[11]) > TIMEDIF_SAMESESSION or line[36] == "6":
           if isError == True :
             printLine = printCandidateLines.popleft()
@@ -167,34 +208,36 @@ for fileName in os.listdir(path):
               else :
                 isQuestionable = True;
                 lastQuestionable = prevLine
-      prevLine = line 
-  if isQuestionable == True :
-    printCandidateLines.append(prevLine)
-    if isError == True :
-      printLine = printCandidateLines.popleft()
-      outFile.write(''+toString(printLine,-1)+'\n')
-      numOfPrinted+=1
-      while printCandidateLines :
+      else:
+        prevLine = line 
+  if appVersion < VERSIONS_SINCE_VERSION_2:
+    if isQuestionable == True :
+      printCandidateLines.append(prevLine)
+      if isError == True :
         printLine = printCandidateLines.popleft()
-        outFileRemove.write(''+toString(printLine,-2)+'\n')
-        numOfDeleted+=1
+        outFile.write(''+toString(printLine,-1)+'\n')
+        numOfPrinted+=1
+        while printCandidateLines :
+          printLine = printCandidateLines.popleft()
+          outFileRemove.write(''+toString(printLine,-2)+'\n')
+          numOfDeleted+=1
+      else :
+        while printCandidateLines :
+          printLine = printCandidateLines.popleft()
+          outFile.write(''+toString(printLine,1)+'\n')
+          numOfPrinted+=1
+          if lastQuestionable == printLine :
+            break
+          else :
+            numOfQuestionable+=1
+        while printCandidateLines :
+          printLine = printCandidateLines.popleft()
+          outFile.write(''+toString(printLine,1)+'\n')
+          numOfPrinted+=1
+        #numOfPrinted+=1
     else :
-      while printCandidateLines :
-        printLine = printCandidateLines.popleft()
-        outFile.write(''+toString(printLine,1)+'\n')
-        numOfPrinted+=1
-        if lastQuestionable == printLine :
-          break
-        else :
-          numOfQuestionable+=1
-      while printCandidateLines :
-        printLine = printCandidateLines.popleft()
-        outFile.write(''+toString(printLine,1)+'\n')
-        numOfPrinted+=1
-      #numOfPrinted+=1
-  else :
-    outFile.write(''+toString(prevLine,2)+'\n')  
-    numOfPrinted+=1  
+      outFile.write(''+toString(prevLine,2)+'\n')  
+      numOfPrinted+=1  
   printCandidateLines.clear()
   outFile.close()
   outFileRemove.close()

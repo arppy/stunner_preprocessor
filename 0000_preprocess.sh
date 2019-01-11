@@ -47,10 +47,10 @@ python3 0030_correct_android_time.py
 #rm -r out
 #mv out3 out
 mkdir out4
-./0040_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" -v is_charging_important="$is_charging_important" out3/*
+./0040_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" out3/*
 #rm -r "out"
 #mv out4 out
-./0051_createSessionsWithNAT.awk out4/* > peersim_session_NAT.txt
+./0051_createSessionsWithNAT.awk -v is_charging_important="$is_charging_important" out4/* > peersim_session_NAT.txt
 rm -r out 2> /dev/null
 rm -r out2 2> /dev/null
 rm -r out3 2> /dev/null

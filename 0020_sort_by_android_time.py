@@ -34,6 +34,7 @@ VERSIONS_SINCE_VERSION_2 = 20
 DEVELOPMENT_VERSIONS = set([19])
 
 NAT_AND_WEBRTC_FIELDS = set([24,25,26,27,28,29,30,31,32,33])
+HASHED_FIELDS = set([2,12,13])
 
 FIRST_VALID_ANDROID_DATE = 1396571221202 # 2014 04 04 00 27 01
 #MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 691200000 # 8 day
@@ -354,10 +355,12 @@ for fileName in os.listdir(path):
         if len(prevline)>0 and line[3] == prevline[3] :
           isPrintPrevLine = False
           for j in range(2,len(prevline)):
-            if j in NAT_AND_WEBRTC_FIELDS :
+            if j in NAT_AND_WEBRTC_FIELDS or j in HASHED_FIELDS:
               continue
             if line[j] != prevline[j] :
               isPrintPrevLine = True
+              print(fileName+' '+toStringV2(prevline))
+              print(fileName+' '+toStringV2(line))
               break
           if not isPrintPrevLine and isNatAndWebRtcdiscovery(prevline) and not isNatAndWebRtcdiscovery(line) :
             isDropThisLine = True
