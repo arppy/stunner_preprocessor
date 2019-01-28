@@ -12,31 +12,32 @@ except ImportError:
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
-V25_RELEASEDATE = 1545004800000 #25 
-V24_RELEASEDATE = 1545004800000 #24 
-V23_RELEASEDATE = 1545004800000 #23 (2.0.3) 17 Dec 2018 
-V22_RELEASEDATE = 1543190400000 #22 (2.0.2) 26 Nov 2018 
-V21_RELEASEDATE = 1540944002000 #21 (2.0.1) 31 Okt 2018 
-V20_RELEASEDATE = 1540771202000 #20 (2.0.0) 29 Okt 2018 
-V19_RELEASEDATE = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released, development version
-V18_RELEASEDATE = 1526083200000 #18 (1.2.3) 12 May 2018 
-V17_RELEASEDATE = 1524441600000 #17 (1.2.2) 23 Apr 2018 
-V16_RELEASEDATE = 1524268800000 #16 (1.2.1) 21 Apr 2018 
-V15_RELEASEDATE = 1524009600000 #15 (1.2.0) 18 Apr 2018 
-V14_RELEASEDATE = 1493078400000 #14 (1.1.4) 25 Apr 2017 14:37
-V13_RELEASEDATE = 1426464000000 #13 (1.1.3) 2015. márc. 16.
-V12_RELEASEDATE = 1421625600000 #12 (1.1.2) 2015. jan. 19.
-V11_RELEASEDATE = 1412812800000 #11 (1.1.1) 2014. okt. 9.
-V10_RELEASEDATE = 1412294400000 #10 (1.1.0) 2014. okt. 3.
-V9_RELEASEDATE = 1398643200000 #  9 (1.0.9) 2014. ápr. 28.
-V8_RELEASEDATE = 1397088000000 #  8 (1.0.8) 2014. ápr. 10.
-V7_RELEASEDATE = 1396137600000 #  7 (1.0.7) 2014. márc. 30.
-V6_RELEASEDATE = 1395964800000 #  6 (1.0.6) 2014. márc. 28.
-V5_RELEASEDATE = 1395792000000 #  5 (1.0.5) 2014. márc. 26.
-V4_RELEASEDATE = 1394755200000 #  4 (1.0.4) 2014. márc. 14.
-V3_RELEASEDATE = 1390262400000 #  3 (1.0.3) 2014. jan. 21.
-V2_RELEASEDATE = 1388966400000 #  2 (1.0.1) 2014. jan. 6.
-V1_RELEASEDATE = 1387497600000 #  1 (1.0.0) 2013. dec. 20.
+versionReleasDate = {}
+versionReleasDate[25] = 1545004800000 #25 
+versionReleasDate[24] = 1548115200000 #24 (2.0.4) 22 Jan 2019 
+versionReleasDate[23] = 1545004800000 #23 (2.0.3) 17 Dec 2018 lastDisconnect is the same on any Android version. so it does not mean the exactly time when a device goes offline in newer Android version. double P2P offer is possible
+versionReleasDate[22] = 1543190400000 #22 (2.0.2) 26 Nov 2018 Lack of offline start record on 24 or greater Android version. 
+versionReleasDate[21] = 1540944002000 #21 (2.0.1) 31 Okt 2018 
+versionReleasDate[20] = 1540771202000 #20 (2.0.0) 29 Okt 2018 
+versionReleasDate[19] = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released, development version
+versionReleasDate[18] = 1526083200000 #18 (1.2.3) 12 May 2018 
+versionReleasDate[17] = 1524441600000 #17 (1.2.2) 23 Apr 2018 
+versionReleasDate[16] = 1524268800000 #16 (1.2.1) 21 Apr 2018 
+versionReleasDate[15] = 1524009600000 #15 (1.2.0) 18 Apr 2018 
+versionReleasDate[14] = 1493078400000 #14 (1.1.4) 25 Apr 2017 14:37
+versionReleasDate[13] = 1426464000000 #13 (1.1.3) 2015. márc. 16.
+versionReleasDate[12] = 1421625600000 #12 (1.1.2) 2015. jan. 19.
+versionReleasDate[11] = 1412812800000 #11 (1.1.1) 2014. okt. 9.
+versionReleasDate[10] = 1412294400000 #10 (1.1.0) 2014. okt. 3.
+versionReleasDate[9] = 1398643200000 #  9 (1.0.9) 2014. ápr. 28.
+versionReleasDate[8] = 1397088000000 #  8 (1.0.8) 2014. ápr. 10.
+versionReleasDate[7] = 1396137600000 #  7 (1.0.7) 2014. márc. 30.
+versionReleasDate[6] = 1395964800000 #  6 (1.0.6) 2014. márc. 28.
+versionReleasDate[5] = 1395792000000 #  5 (1.0.5) 2014. márc. 26.
+versionReleasDate[4] = 1394755200000 #  4 (1.0.4) 2014. márc. 14.
+versionReleasDate[3] = 1390262400000 #  3 (1.0.3) 2014. jan. 21.
+versionReleasDate[2] = 1388966400000 #  2 (1.0.1) 2014. jan. 6.
+versionReleasDate[1] = 1387497600000 #  1 (1.0.0) 2013. dec. 20.
 
 #MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk=\n"
 MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk\u003d"
@@ -58,6 +59,7 @@ BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 INFILE_PATH = 'res/res_v1/'
 OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
+VERSION_TWO_SINCE = 20
 STUNNER_APP_ID = 'hu.uszeged.inf.wlab.stunner'
 
 max_timestamp = 0;
@@ -434,37 +436,13 @@ for fileName in files:
                   if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
                      appVersion not in DEVELOPMENT_VERSIONS and \
                      triggerCode not in NOT_USED_TRIGGER_CODES and \
-                     ( (appVersion == 1 and V1_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 2 and V2_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 3 and V3_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 4 and V4_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 5 and V5_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 6 and V6_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 7 and V7_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 8 and V8_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 9 and V9_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 10 and V10_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 11 and V11_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 12 and V12_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 13 and V13_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 14 and V14_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 15 and V15_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 16 and V16_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 17 and V17_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 18 and V18_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 19 and V19_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 20 and V20_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 21 and V21_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 22 and V22_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 23 and V23_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 24 and V24_RELEASEDATE < int(record["timeStamp"])) or \
-                       (appVersion == 25 and V25_RELEASEDATE < int(record["timeStamp"])) ) :
+                     versionReleasDate[appVersion] < int(record["timeStamp"]) :
                     rowPerUser[userName] +=1
                     if previousValidUploadDate[userName] != serverSideUploadDate :
                       differentServerTimePerUser[userName] += 1
                       previousValidUploadDate[userName] = serverSideUploadDate
                       record["previousValidUploadDate"] = previousValidUploadDate[userName]
-                    if appVersion > 19 :
+                    if appVersion >= VERSION_TWO_SINCE :
                       outstr = toStringV2(record)
                     else :    
                       outstr = toStringV1(record)  
