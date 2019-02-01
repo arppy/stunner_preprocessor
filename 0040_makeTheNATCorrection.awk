@@ -71,7 +71,7 @@ BEGIN{
 {
   appversion=int($9)
   if (appversion >= VERSIONS_SINCE_VERSION_2) {
-    andoridVersion=int($8)
+    #andoridVersion=int($8)
     #if ( $25 != -3) {
     #  cm=int($10)
     #  if(cm==-1){
@@ -99,18 +99,24 @@ BEGIN{
       split(FILENAME,filename,"/")
       file="out4/"filename[2]
     }
-    if (andoridVersion<ANDROID_VERSION_SINE_WITHOUT_BRODCAST || appversion >= VERSION_2_IS_OK_SINCE) { #without CONNECTION_LOST broadcast we do not have goes offline info
-      print($0) >> file
+    #if (andoridVersion<ANDROID_VERSION_SINE_WITHOUT_BRODCAST || appversion >= VERSION_2_IS_OK_SINCE) { #without CONNECTION_LOST broadcast we do not have goes offline info
+    if ($25==-2&&$26==-1) {
+      $25=-3
     }
+    if ($25==-2&&$26>0) {
+      $25=-1  
+    }
+    print($0) >> file
+    #}
   } else {
     cm=int($17)
     if(cm==-1){
       $16="-2";
     }
-    if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($32) == 0 ) {#remove_slow_mobilenetwork is a param{
-      $16="-2"
-      removedSlow++;
-    }
+    #if(remove_slow_mobilenetwork == 1 && cm == 0 && determine_connection_bandwidth($32) == 0 ) {#remove_slow_mobilenetwork is a param{
+    #  $16="-2"
+    #  removedSlow++;
+    #}
     #if(is_charging_important == 1 &&  isOnCharger($25,$22) == 0 ){
     #  $16="-2"
     #}
@@ -239,6 +245,4 @@ END{
   }
   i=1
   delete(memory)
-  percent=(sumOfMinusTwoInOnlineSessions/sumOfAll)*100
-  print(percent" "removedSlow)
 }

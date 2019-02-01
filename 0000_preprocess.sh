@@ -1,20 +1,20 @@
 #! /bin/bash
 rm 000000000000000000000 2> /dev/null
 rm 000000000000000000001 2> /dev/null
-rm -r out 2> /dev/null
-rm -r out2 2> /dev/null
-rm -r out3 2> /dev/null
-rm -r out4 2> /dev/null
 is_add_delay=false;
 is_append_nat=false;
 is_drop_short_session=false
 is_create_onedaylong_period=false
-is_remove_slow_mobilenetwork=0
+is_remove_slow_mobilenetwork=1
 is_drop_100percent_offline_session=false
-is_charging_important=0
+is_charging_important=1
+is_keep_temporary_directories=false
 for param in $*; do
-  if [ $param = chargingStateOnCharger -o $param = onCharger ]; then
-    is_charging_important=1;
+  if [ $param = keepTmp -o $param = keepTemporaryDirectories ]; then 
+    is_keep_temporary_directories=true
+  fi
+  if [ $param = chargingStateNoCharger -o $param = noCharger ]; then
+    is_charging_important=0;
   fi
   if [ $param = addDelay  ]; then
     is_add_delay=true;
@@ -31,30 +31,43 @@ for param in $*; do
   if [ $param = dropShort ]; then
     is_drop_short_session=true;
   fi
-  if [ $param = removeSlow -o $param = removeSlowMobileNetwork ]; then
-    is_remove_slow_mobilenetwork=1
+  if [ $param = noRemoveSlow -o $param = doNotRemoveSlowMobileNetwork ]; then
+    is_remove_slow_mobilenetwork=0
   fi
 done
-mkdir out
+rm -r out 2> /dev/null
+mkdir out  
 python3 0010_json_to_csv.py
 rm out/null 2> /dev/null
-mkdir out2
+rm -r out2  2> /dev/null
+mkdir out2  
 python3 0020_sort_by_android_time.py
-#rm -r out
-#mv out2 out
+if [ $is_keep_temporary_directories = false ]; then
+  rm -r out
+fi
+rm -r out3  2> /dev/null
 mkdir out3
 python3 0030_correct_android_time.py
-#rm -r out
-#mv out3 out
-mkdir out4
-./0040_makeTheNATCorrectionAndRemoveSlowAndOnCharger.awk -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" out3/*
-#rm -r "out"
-#mv out4 out
-./0051_createSessionsWithNAT.awk -v is_charging_important="$is_charging_important" out4/* > peersim_session_NAT.txt
-rm -r out 2> /dev/null
-rm -r out2 2> /dev/null
-rm -r out3 2> /dev/null
+if [ $is_keep_temporary_directories = false ]; then
+  rm -r out2  2> /dev/null
+fi
+rm out3/*REMOVED
 rm -r out4 2> /dev/null
+mkdir out4
+./0040_makeTheNATCorrection.awk out3/*
+if [ $is_keep_temporary_directories = false ]; then
+  rm -r out3  2> /dev/null
+fi
+rm -r out5  2> /dev/null
+mkdir out5
+./0050_prefilterBeforeSessionCreation.awk out4/*
+if [ $is_keep_temporary_directories = false ]; then
+  rm -r out4
+fi
+./0051_createSessionsWithNAT.awk -v is_charging_important="$is_charging_important" -v remove_slow_mobilenetwork="$is_remove_slow_mobilenetwork" out5/* > peersim_session_NAT.txt
+#if [ $is_keep_temporary_directories = false ]; then
+#  rm -r out5
+#fi
 cat peersim_session_NAT.txt > peersim_session_NATd.txt
 if [ $is_append_nat = true ]; then
   ./0052_appendSimilarNATtypes.awk peersim_session_NATd.txt > peersim_session_NATdbac.txt

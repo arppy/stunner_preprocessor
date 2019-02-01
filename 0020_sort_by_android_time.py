@@ -218,9 +218,9 @@ for fileName in os.listdir(path):
                     prevPrintedOriginRow = copy.deepcopy(atuple[1])
                     prevOriginRow = prevOriginRow
                   elif userV1[prevOriginRow][14] != userV1[atuple[1]][14] :
-                    if userV1[atuple[1]][36] not in VERSIONS_STUN_SERVER_OK and userV1[atuple[1]][14] == "1" :
-                      prevOriginRow = prevOriginRow 
-                    elif userV1[prevOriginRow][36] not in VERSIONS_STUN_SERVER_OK and userV1[prevOriginRow] == "1" :
+                    if userV1[atuple[1]][36] and int(userV1[atuple[1]][36]) >= VERSIONS_SINCE_STUN_SERVER_OK and userV1[atuple[1]][14] == "1" :
+                        prevOriginRow = prevOriginRow 
+                    elif userV1[prevOriginRow][36] and int(userV1[prevOriginRow][36]) >= VERSIONS_SINCE_STUN_SERVER_OK and userV1[prevOriginRow] == "1" :
                       prevOriginRow = atuple[1]
                     elif userV1[atuple[1]][14] in OFFLINE_NAT_TYPES :
                       userV1[atuple[1]][14] = "-2"

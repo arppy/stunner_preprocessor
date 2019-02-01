@@ -20,16 +20,16 @@ versionReleasDate[22] = 1543190400000 #22 (2.0.2) 26 Nov 2018 Lack of offline st
 versionReleasDate[21] = 1540944002000 #21 (2.0.1) 31 Okt 2018 
 versionReleasDate[20] = 1540771202000 #20 (2.0.0) 29 Okt 2018 
 versionReleasDate[19] = 1540771201000 #19 (1.2.4) 29 Okt 2018 has never released, development version
-versionReleasDate[18] = 1526083200000 #18 (1.2.3) 12 May 2018 
-versionReleasDate[17] = 1524441600000 #17 (1.2.2) 23 Apr 2018 
-versionReleasDate[16] = 1524268800000 #16 (1.2.1) 21 Apr 2018 
-versionReleasDate[15] = 1524009600000 #15 (1.2.0) 18 Apr 2018 
+versionReleasDate[18] = 1526083200000 #18 (1.2.3) 12 May 2018 P2P crash
+versionReleasDate[17] = 1524441600000 #17 (1.2.2) 23 Apr 2018 P2P crash
+versionReleasDate[16] = 1524268800000 #16 (1.2.1) 21 Apr 2018 P2P crash
+versionReleasDate[15] = 1524009600000 #15 (1.2.0) 18 Apr 2018 P2P crash
 versionReleasDate[14] = 1493078400000 #14 (1.1.4) 25 Apr 2017 14:37
 versionReleasDate[13] = 1426464000000 #13 (1.1.3) 2015. márc. 16.
 versionReleasDate[12] = 1421625600000 #12 (1.1.2) 2015. jan. 19.
 versionReleasDate[11] = 1412812800000 #11 (1.1.1) 2014. okt. 9.
 versionReleasDate[10] = 1412294400000 #10 (1.1.0) 2014. okt. 3.
-versionReleasDate[9] = 1398643200000 #  9 (1.0.9) 2014. ápr. 28.
+versionReleasDate[9] = 1398643200000 #  9 (1.0.9) 2014. ápr. 28. first ok
 versionReleasDate[8] = 1397088000000 #  8 (1.0.8) 2014. ápr. 10.
 versionReleasDate[7] = 1396137600000 #  7 (1.0.7) 2014. márc. 30.
 versionReleasDate[6] = 1395964800000 #  6 (1.0.6) 2014. márc. 28.
@@ -37,7 +37,7 @@ versionReleasDate[5] = 1395792000000 #  5 (1.0.5) 2014. márc. 26.
 versionReleasDate[4] = 1394755200000 #  4 (1.0.4) 2014. márc. 14.
 versionReleasDate[3] = 1390262400000 #  3 (1.0.3) 2014. jan. 21.
 versionReleasDate[2] = 1388966400000 #  2 (1.0.1) 2014. jan. 6.
-versionReleasDate[1] = 1387497600000 #  1 (1.0.0) 2013. dec. 20.
+versionReleasDate[1] = 1387497600000 #  1 (1.0.0) 2013. dec. 20. no continuous measure
 
 #MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk=\n"
 MYMACADRESS = "kQbJyfSx3g1CAjMVXG9rWbUribixMm17dOd72kx0jKk\u003d"
@@ -50,7 +50,7 @@ MAX_DIF_IN_SERVERSAVE_AND_SERVER_TIME = 3600000  # 1 hour
 LAST_VALID_SERVER_DATE_FOR_FIRSTVERSION_OF_THE_DATA = 1417391999000  # 30 Nov 2014 23:59:59 GMT
 
 DEVELOPMENT_VERSIONS = set([19])
-NOT_USED_TRIGGER_CODES = set([15,17])
+NOT_USED_TRIGGER_CODES = set([-1,15,17])
 BATTERY_PLUGGED_STATE = set(['1', '2', '4'])
 BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
 BATTERY_STATUS_CHARGING = set(['2', '5'])
@@ -421,7 +421,7 @@ for fileName in files:
                 record["deviceHash"] = userName
                 record["platform"] = platform
                 try:
-                  if(int(record["serverSideUploadDate"]) == 0) :
+                  if(int(record["serverSideUploadDate"]) == 0  or int(record["serverSideUploadDate"]) == -1 ) :
                     difInServerAndAndroidTime = 0
                   else :
                     difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
@@ -432,11 +432,9 @@ for fileName in files:
                   try:
                     triggerCode = int(record["triggerCode"])
                   except:
-                    triggerCode = 15  
+                    triggerCode = -1 
                   if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
-                     appVersion not in DEVELOPMENT_VERSIONS and \
-                     triggerCode not in NOT_USED_TRIGGER_CODES and \
-                     versionReleasDate[appVersion] < int(record["timeStamp"]) :
+                    versionReleasDate[appVersion] <= int(record["timeStamp"]) :
                     rowPerUser[userName] +=1
                     if previousValidUploadDate[userName] != serverSideUploadDate :
                       differentServerTimePerUser[userName] += 1
@@ -456,11 +454,11 @@ for fileName in files:
                     #      str(difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME),str(difInServerAndAndroidTime),str(record["serverSideUploadDate"]))
                 except Exception as e :
                   allFiltered += 1
-                  print('Missing Record! ',str(fileName), str(allFiltered / allRecord), str(userName), str(line),type(e), e, e.args )  
+                  print('Missing Record! ',str(fileName), str(userName), str(appVersion), str(line),type(e), e, e.args )  
               except ValueError:  
                 if i>=4 :
                   allFiltered += 1
-                  print('Not a JSON! ',str(fileName), str(allFiltered / allRecord), str(userName), str(record), str(line))
+                  print('Not a JSON! ',str(fileName), str(appVersion), str(userName), str(record), str(line))
           i += 1;
         if i >= 3 :
           i = 0

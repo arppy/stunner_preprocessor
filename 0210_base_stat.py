@@ -33,6 +33,9 @@ with open('res/res_v2/stuntest-2019-01-17.csv', encoding='utf8') as csvfile:
       mJson = {}
       mJson.update(discoveryJson)
       mJson.update(p2pJson)
+      if "natResultsDTO" in discoveryJson and discoveryJson["natResultsDTO"]['STUNserver']=="N/A" and discoveryJson["natResultsDTO"]['discoveryResult']==-2 :
+        #print(mJson)
+        mJson["natResultsDTO"]['discoveryResult']=-3
       if 'appVersion' in discoveryJson and discoveryJson['appVersion'] >= 20 and 'connectionID' in p2pJson and p2pJson['connectionID'] != -1 and p2pJson['connectionID'] != 0 : 
         if not p2pJson['connectionID'] in m :
           m[p2pJson['connectionID']] = {}
@@ -81,9 +84,9 @@ natStringDict["5"] = "Port restricted cone"
 natStringDict["6"] = "Symmetric cone"
 natStringDict["2"] = "Symmetric UDP firewall"
 natStringDict["1"] = "Firewall blocks"
-natStringDict["-2"] = "NAT type is missing"
+natStringDict["-2"] = "No connection"
 natStringDict["-1"] = "Measurement error"
-natStringDict["-3"] = "NAT type is missing-3"
+natStringDict["-3"] = "NAT type is missing"
 
 natStringDictAbbreviation  = {}
 
@@ -94,9 +97,9 @@ natStringDictAbbreviation["5"] = "PRC"
 natStringDictAbbreviation["6"] = "SC"
 natStringDictAbbreviation["2"] = "SF"
 natStringDictAbbreviation["1"] = "FB"
-natStringDictAbbreviation["-2"] = "N/A"
+natStringDictAbbreviation["-2"] = "NA"
 natStringDictAbbreviation["-1"] = "ER"
-natStringDictAbbreviation["-3"] = "NA"
+natStringDictAbbreviation["-3"] = "N/A"
 
 p2pList = []
 p2pList.append(NA)
@@ -430,9 +433,9 @@ for natKeyString, natDict in natByNatRes.items() :
 #del natStringDictAbbreviation["0"]
 #del natStringDictAbbreviation["2"]
 #del natStringDictAbbreviation["1"]
-#del natStringDictAbbreviation["-2"]
+del natStringDictAbbreviation["-2"]
 del natStringDictAbbreviation["-1"]
-del natStringDictAbbreviation["-3"]
+#del natStringDictAbbreviation["-3"]
 
 for number1, natKey1 in natStringDictAbbreviation.items() :
   for number2, natKey2 in natStringDictAbbreviation.items() :
