@@ -4,7 +4,7 @@
  prevSessionLength = $6;
  prevSessionNatType = $7;
  if(prevSessionNatType != -3 && prevSessionNatType != -2 && prevSessionNatType != -1 ) { #something online && prevSessionNatType != 1
-   printStrSuf = ""prevSessionLength" "prevSessionNatType;
+   printStrSuf = " "prevSessionLength" "prevSessionNatType;
  }
  if(NF>7){
   for(i=8;i<=NF;i+=2) {
@@ -30,7 +30,7 @@
   }
  }
  if(!printStrSuf) {
-   printStrSuf = ""prevSessionLength" -2";
+   printStrSuf = " "prevSessionLength" -2";
  }
- print $1" "$2" "$3" "$4" "$5" "printStrSuf
+ print $1" "$2" "$3" "$4" "$5""printStrSuf
 }

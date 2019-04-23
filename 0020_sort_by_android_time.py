@@ -359,8 +359,9 @@ for fileName in os.listdir(path):
               continue
             if line[j] != prevline[j] :
               isPrintPrevLine = True
-              print(fileName+' '+toStringV2(prevline))
-              print(fileName+' '+toStringV2(line))
+              print(fileName, str(j),'----------')
+              print(toStringV2(prevline))
+              print(toStringV2(line))
               break
           if not isPrintPrevLine and isNatAndWebRtcdiscovery(prevline) and not isNatAndWebRtcdiscovery(line) :
             isDropThisLine = True

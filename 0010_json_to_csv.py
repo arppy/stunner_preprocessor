@@ -14,7 +14,7 @@ from collections import defaultdict
 
 versionReleasDate = {}
 versionReleasDate[25] = 1545004800000 #25 
-versionReleasDate[24] = 1548115200000 #24 (2.0.4) 22 Jan 2019 
+versionReleasDate[24] = 1548115200000 #24 (2.0.4) 22 Jan 2019 lastDisconnect dont work
 versionReleasDate[23] = 1545004800000 #23 (2.0.3) 17 Dec 2018 lastDisconnect is the same on any Android version. so it does not mean the exactly time when a device goes offline in newer Android version. double P2P offer is possible
 versionReleasDate[22] = 1543190400000 #22 (2.0.2) 26 Nov 2018 Lack of offline start record on 24 or greater Android version. 
 versionReleasDate[21] = 1540944002000 #21 (2.0.1) 31 Okt 2018 
@@ -46,7 +46,7 @@ FIRST_VALID_ANDROID_DATE = 1396571221202  # 2014 04 04 00 27 01
 MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 604800000  # 7 day
 # MAX_DIF_IN_ANDROID_AND_SERVER_TIME = 2592000000 # 30 day
 MIN_DIF_IN_ANDROID_AND_SERVER_TIME = 0
-MAX_DIF_IN_SERVERSAVE_AND_SERVER_TIME = 3600000  # 1 hour
+MAX_DIF_IN_ANDROID_AND_FILE_TIME = 1000*60*60*2  # 2 hour
 LAST_VALID_SERVER_DATE_FOR_FIRSTVERSION_OF_THE_DATA = 1417391999000  # 30 Nov 2014 23:59:59 GMT
 
 DEVELOPMENT_VERSIONS = set([19])
@@ -61,15 +61,6 @@ OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
 VERSION_TWO_SINCE = 20
 STUNNER_APP_ID = 'hu.uszeged.inf.wlab.stunner'
-
-max_timestamp = 0;
-allRecord = 0
-allFiltered = 0
-counter = 0
-differentServerTimePerUser = defaultdict(dict);
-rowPerUser = defaultdict(dict);
-previousValidUploadDate = defaultdict(dict);
-platform = STUNNER_APP_ID
 
 
 def maxTimestamp(ts):
@@ -157,44 +148,91 @@ def toBatteryDTOString(record):
   tostring += ';' + str(record["chargingState"])  # $25
   return tostring
 
-
 def toStringV2(record):
   tostring = '' + str(record["fileCreationDate"])  # $1
   tostring += ';' + replaceNullNA(str(record["serverSideUploadDate"]))  # $2
-  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["androidID"])))) # $3
-  tostring += ';' + str(record["recordID"])  # $4
-  tostring += ';' + replaceNullNA(str(record["timeStamp"]))  # $5
+  if "androidID" in record :
+    tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["androidID"])))) # $3
+  else :
+    tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["deviceHash"]))))  # $3
+  if "recordID" in record :
+    tostring += ';' + str(record["recordID"])  # $4
+  else :
+    tostring += addNAToString(1)
+  if "timeStamp" in record :
+    tostring += ';' + replaceNullNA(str(record["timeStamp"]))  # $5
+  else:
+    tostring += addNAToString(1)
   maxTimestamp(record["timeStamp"])
-  tostring += ';' + str(record["timeZoneUTCOffset"])  # $6
+  if "timeZoneUTCOffset" in record :
+    tostring += ';' + str(record["timeZoneUTCOffset"])  # $6
+  else:
+    tostring += addNAToString(1)
   tostring += ';' + str(record["triggerCode"])  # $7
   tostring += ';' + str(record["androidVersion"])  # $8
   tostring += ';' + str(record["appVersion"])  # $9
   tostring += ';' + str(record["connectionMode"])  # $10
-  tostring += ';' + str(record["networkInfo"])  # $11
+  if "networkInfo" in record :
+    tostring += ';' + str(record["networkInfo"])  # $11
+  else :
+    tostring += addNAToString(1)
   tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["localIP"])))  # $12
-  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["macAddress"]))))  # $13
-  tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["ssid"]))))  # $14
-  tostring += ';' + str(record["wifiDTO"]["state"])  # $15
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiDTO"]["bandwidth"])))  # $16
-  tostring += ';' + str(record["wifiDTO"]["rssi"])  # $17
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["carrier"])))  # $18
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkType"])))  # $19
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkCountryIso"])))  # $20
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["simCountryIso"])))  # $21
-  tostring += ';' + str(record["mobileDTO"]["roaming"])  # $22
-  tostring += ';' + str(record["mobileDTO"]["phoneType"])  # $23
-  tostring += ';' + str(record["mobileDTO"]["airplane"])  # $24
-  tostring += ';' + str(record["natResultsDTO"]["discoveryResult"])  # $25
-  tostring += ';' + str(record["natResultsDTO"]["exitStatus"])  # $26
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["publicIP"])))  # $27
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["STUNserver"])))  # $28
-  tostring += ';' + replaceNullNA(str(record["natResultsDTO"]["lastDiscovery"]))  # $29
-  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionStart"]))  # $30
-  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionEnd"]))  # $31
-  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelOpen"]))  # $32
-  tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelClosed"]))  # $33
-  tostring += ';' + str(record["webRTCResultsDTO"]["exitStatus"])  # $34
-  tostring += ';' + replaceNullNA(str(record["lastDisconnect"]))  # $35
+  if "wifiDTO" in record and record["wifiDTO"] is not None:
+    if "macAddress" in record["wifiDTO"]:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["macAddress"]))))  # $13
+    else :
+      tostring += addNAToString(1)
+    if "ssid" in record["wifiDTO"]:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["ssid"]))))  # $14
+    else :
+      tostring += addNAToString(1)
+    if "state" in record["wifiDTO"] :
+      tostring += ';' + str(record["wifiDTO"]["state"])  # $15
+    else :
+      tostring += addNAToString(1)
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiDTO"]["bandwidth"])))  # $16
+    tostring += ';' + str(record["wifiDTO"]["rssi"])  # $17
+  else :
+    tostring += addNAToString(6)
+  if "mobileDTO" in record and record["mobileDTO"] is not None:
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["carrier"])))  # $18
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkType"])))  # $19
+    if "networkCountryIso" in record["mobileDTO"]:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkCountryIso"])))  # $20
+    else :
+      tostring += addNAToString(1)
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["simCountryIso"])))  # $21
+    tostring += ';' + str(record["mobileDTO"]["roaming"])  # $22
+    if "phoneType" in record["mobileDTO"]:
+      tostring += ';' + str(record["mobileDTO"]["phoneType"])  # $23
+    else:
+      tostring += addNAToString(1)
+    if "airplane" in record["mobileDTO"]:
+      tostring += ';' + str(record["mobileDTO"]["airplane"])  # $24
+    else:
+      tostring += addNAToString(1)
+  else :
+    tostring += addNAToString(7)
+  if "natResultsDTO" in record :
+    tostring += ';' + str(record["natResultsDTO"]["discoveryResult"])  # $25
+    tostring += ';' + str(record["natResultsDTO"]["exitStatus"])  # $26
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["publicIP"])))  # $27
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["STUNserver"])))  # $28
+    tostring += ';' + replaceNullNA(str(record["natResultsDTO"]["lastDiscovery"]))  # $29
+  else :
+    tostring += addNAToString(5)
+  if "webRTCResultsDTO" in record :
+    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionStart"]))  # $30
+    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionEnd"]))  # $31
+    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelOpen"]))  # $32
+    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelClosed"]))  # $33
+    tostring += ';' + str(record["webRTCResultsDTO"]["exitStatus"])  # $34
+  else :
+    tostring += addNAToString(5)
+  if "lastDisconnect" in record:
+    tostring += ';' + replaceNullNA(str(record["lastDisconnect"]))  # $35
+  else :
+    tostring += addNAToString(1)
   tostring += ';' + str(record["batteryDTO"]["chargingState"])  # $36
   tostring += ';' + str(record["batteryDTO"]["pluggedState"])  # $37
   tostring += ';' + str(record["batteryDTO"]["percentage"])  # $38
@@ -208,7 +246,11 @@ def toStringV2(record):
   tostring += ';' + str(record["uptimeInfoDTO"]["uptime"])  # $46
   tostring += ';' + replaceNullNA(str(record["latitude"]))  # $47
   tostring += ';' + replaceNullNA(str(record["longitude"]))  # $48
-  tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
+  if "locationCaptureTimestamp" in record :
+    tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
+  else :
+    tostring += addNAToString(1)
+  tostring += ';' + str(record["sourceRow"])  # $50
   return tostring
 
 def toStringV1(record):
@@ -229,16 +271,21 @@ def toStringV1(record):
     tostring += ';' + replaceProblematicChars(record["localIP"])  # $11
   else :
     tostring += addNAToString(1)
-  tostring += ';' + str(record["timeStamp"])  # $12
-  maxTimestamp(record["timeStamp"])
+  if "timeStamp" in record :
+    tostring += ';' + str(record["timeStamp"])  # $12
+    maxTimestamp(record["timeStamp"])
+  else :
+    tostring += addNAToString(1)
   tostring += ';' + str(record["latitude"])  # $13
   tostring += ';' + str(record["longitude"])  # $14
-  androidVersionString = str(record["androidVersion"])
-  if androidVersionString :
+  if "androidVersion" in record :
     tostring += ';' + str(record["androidVersion"])  # $15
   else :
-    tostring += ';'
-  tostring += ';' + str(record["discoveryResultCode"])  # $16
+    tostring += addNAToString(1)
+  if "discoveryResultCode" in record :
+    tostring += ';' + str(record["discoveryResultCode"])  # $16
+  else :
+    tostring += addNAToString(1)
   try :
     tostring += ';' + str(record["connectionMode"])  # $17
   except:
@@ -247,7 +294,7 @@ def toStringV1(record):
     tostring += toBatteryDTOString(record["batteryDTO"])  # $18 -- $25
   except:
     tostring += addNAToString(8)
-  if record["wifiDTO"] is not None:
+  if "wifiDTO" in record and record["wifiDTO"] is not None:
     if record["wifiDTO"]["bandwidth"] is not None :
       tostring += ';' + replaceProblematicChars(str(record["wifiDTO"]["bandwidth"]))  # $26
       # tostring+= ';'+str(getWifiBandwidthState(record["wifiDTO"]["bandwidth"])) #$26
@@ -267,7 +314,7 @@ def toStringV1(record):
       tostring += ';'
   else :
     tostring += addNAToString(4)
-  if record["mobileDTO"] is not None:
+  if "mobileDTO" in record and record["mobileDTO"] is not None:
     try :
       carrierString = replaceProblematicChars(record["mobileDTO"]["carrier"])
       if carrierString:
@@ -289,7 +336,7 @@ def toStringV1(record):
     tostring += ';' + str(record["mobileDTO"]["roaming"])  # $33
   else :
     tostring += addNAToString(4)
-  if record["uptimeInfoDTO"] is not None:
+  if "uptimeInfoDTO" in record and record["uptimeInfoDTO"] is not None:
     if "shutdownTimestamp" in record["uptimeInfoDTO"] :
       tostring += ';' + str(record["uptimeInfoDTO"]["shutdownTimestamp"])  # $34
     else :
@@ -315,13 +362,21 @@ def toStringV1(record):
     tostring += ';'
   return tostring
 
-
 def whatTheTime(lastTime):
   print("elapsed: ", time.time() - lastTime)
   return time.time()
 
 def removeLastCharsFromString(inputHashedString):
   return inputHashedString[:-10]
+
+def replaceProblematicCharsInJSON(inputString) :
+  inputString = inputString.replace('":",','":"NA",')
+  inputString = inputString.replace('"""', '"NA"')
+  inputString = inputString.replace('"carrier":""', '"carrier":"NA"')
+  inputString = inputString.replace('"simCountryIso":""','"simCountryIso":"NA"')
+  inputString = inputString.replace('"networkCountryIso":""','"networkCountryIso":"NA"')
+  inputString = inputString.replace('""', '"')
+  return inputString
 
 def replaceProblematicChars(inputString):
   niceString = inputString.replace('\'', '')
@@ -357,6 +412,15 @@ def replaceNullNA(inputString):
   else: 
     return inputString
 
+max_timestamp = 0;
+allRecord = 0
+allFiltered = 0
+counter = 0
+differentServerTimePerUser = defaultdict(dict);
+rowPerUser = defaultdict(dict);
+previousValidUploadDate = defaultdict(dict);
+platform = STUNNER_APP_ID
+
 print("JSON TO CSV START")
 # MAIN
 lastTime = time.time()
@@ -371,7 +435,7 @@ for fileName in files:
   try :
     fileCreationDate = int(baseNameString[0]) * 60 * 60 * 1000
   except :
-    fileCreationDate = -1
+    fileCreationDate = 0
   try:
     with open('' + path + fileName) as csvfile:
       stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
@@ -391,7 +455,7 @@ for fileName in files:
             try:
               serverSideUploadDate = int(record)                
             except :
-              serverSideUploadDate = -1
+              serverSideUploadDate = 0
           if i == 1 :
             userName = str(record)
             if not previousValidUploadDate[userName]:
@@ -411,6 +475,18 @@ for fileName in files:
                 record = json.loads(record, strict=False)
                 if not type(record) == type({}) :
                   raise ValueError
+              except ValueError:
+                record = replaceProblematicCharsInJSON(record)
+                try:
+                  record = json.loads(record, strict=False)
+                  if not type(record) == type({}):
+                    raise ValueError
+                except ValueError:
+                  if i >= 4:
+                    allFiltered += 1
+                    print('Not a JSON! ', str(fileName), str(appVersion), str(userName), str(record), str(line))
+                  record = {}
+              if record:
                 allRecord += 1
                 record = determineUnkownValue(record)
                 record["sourceFile"] = fileName
@@ -421,10 +497,14 @@ for fileName in files:
                 record["deviceHash"] = userName
                 record["platform"] = platform
                 try:
-                  if(int(record["serverSideUploadDate"]) == 0  or int(record["serverSideUploadDate"]) == -1 ) :
+                  if(int(record["serverSideUploadDate"]) == 0 ) :
                     difInServerAndAndroidTime = 0
                   else :
                     difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
+                  if(int(record["fileCreationDate"]) == 0 ) :
+                    difInFileAndAndroidTime = 0
+                  else :
+                    difInFileAndAndroidTime =  int(record["timeStamp"]) - int(record["fileCreationDate"])
                   try:
                     appVersion = int(record["appVersion"]);
                   except:
@@ -432,8 +512,9 @@ for fileName in files:
                   try:
                     triggerCode = int(record["triggerCode"])
                   except:
-                    triggerCode = -1 
+                    triggerCode = -1
                   if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
+                     difInFileAndAndroidTime <= MAX_DIF_IN_ANDROID_AND_FILE_TIME and \
                     versionReleasDate[appVersion] <= int(record["timeStamp"]) :
                     rowPerUser[userName] +=1
                     if previousValidUploadDate[userName] != serverSideUploadDate :
@@ -442,8 +523,8 @@ for fileName in files:
                       record["previousValidUploadDate"] = previousValidUploadDate[userName]
                     if appVersion >= VERSION_TWO_SINCE :
                       outstr = toStringV2(record)
-                    else :    
-                      outstr = toStringV1(record)  
+                    else :
+                      outstr = toStringV1(record)
                     file = open('' + OUTFILE_PATH + userName , "a+", encoding="utf-8")
                     file.write('' + outstr + '\n')
                     file.close()
@@ -454,11 +535,7 @@ for fileName in files:
                     #      str(difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME),str(difInServerAndAndroidTime),str(record["serverSideUploadDate"]))
                 except Exception as e :
                   allFiltered += 1
-                  print('Missing Record! ',str(fileName), str(userName), str(appVersion), str(line),type(e), e, e.args )  
-              except ValueError:  
-                if i>=4 :
-                  allFiltered += 1
-                  print('Not a JSON! ',str(fileName), str(appVersion), str(userName), str(record), str(line))
+                  print('Missing Record! ',str(fileName), str(userName), str(appVersion), str(line),type(e), e, e.args )
           i += 1;
         if i >= 3 :
           i = 0

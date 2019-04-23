@@ -1,0 +1,13 @@
+MAXIMUM:
+TotalNumberOfExaminedRecord: 1013410.0 NumberOfAppropriateRecord: 335350.0 NumberOfDeletedDuplicated: 678060.0 4
+TotalNumberOfExaminedRecord: 499972.0 NumberOfAppropriateRecord: 388795.0 NumberOfDeletedDuplicated:  111177.0 4
+TotalNumberOfExaminedRecord: 750165.0 NumberOfAppropriateRecord: 727792.0 NumberOfDeletedDuplicated:   22373.0 4
+TotalNumberOfExaminedRecord: 740311.0 NumberOfAppropriateRecord: 724906.0 NumberOfDeletedDuplicated:   15405.0 4
+
+
+
+MINIMUM:
+TotalNumberOfExaminedRecord: 1013410.0 NumberOfAppropriateRecord: 336120.0 NumberOfDeletedDuplicated: 677290.0 29
+TotalNumberOfExaminedRecord: 499972.0 NumberOfAppropriateRecord: 391096.0 NumberOfDeletedDuplicated:  108876.0 45
+TotalNumberOfExaminedRecord: 750165.0 NumberOfAppropriateRecord: 731744.0 NumberOfDeletedDuplicated:   18421.0 46
+TotalNumberOfExaminedRecord: 740311.0 NumberOfAppropriateRecord: 727550.0 NumberOfDeletedDuplicated:   12761.0 45

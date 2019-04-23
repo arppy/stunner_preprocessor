@@ -1,4 +1,27 @@
 #! /usr/bin/awk -f
+BEGIN{
+  onlineNat[0]=1
+  onlineNat[1]=1
+  onlineNat[2]=1
+  onlineNat[3]=1
+  onlineNat[4]=1
+  onlineNat[5]=1
+  onlineNat[6]=1
+  FS=";"
+  VERSIONS_SINCE_VERSION_2=20
+  VERSIONS_SINCE_LAST_DISCONNECT_IS_OK=25
+  ANDROID_VERSION_SINCE_NO_BROADCAST=24
+  MAXDIF_OFFLINE_V2=604800000 # 1 week
+  MAXDIF_ONLINE_V2=1499999 # 24.99999999 minute
+  MINUTE=60*1000
+}
+
+function isOnline(nat){
+  if (nat in onlineNat) {
+    return 1
+  }
+  return 0
+}
 function isOnCharger(chargingState, pluggedinState){
   if(chargingState == 2 || chargingState == 5) {
     return 1;
@@ -30,16 +53,16 @@ function determine_connection_bandwidth(networkType) { #slow: 0 ; fast: 1;
 	if( networkType == "1xRTT"){ #144-384 kbps
 		return 0;
 	}
-	if( networkType == "EVDO_0" || networkType == "EV-DO Rel.0" || networkType == "EV-DORel.0" ){ #2.4 Mbit/s 
+	if( networkType == "EVDO_0" || networkType == "EV-DO Rel.0" || networkType == "EV-DORel.0" || networkType == "EV-DO_Rel.0" ){ #2.4 Mbit/s 
 		return 1;
 	}
-	if( networkType == "EVDO_A" || networkType == "EV-DO Rel.A"|| networkType == "EV-DORev.A" ){ #3.1 Mbit/s
+	if( networkType == "EVDO_A" || networkType == "EV-DO Rel.A"|| networkType == "EV-DORev.A" || networkType == "EV-DO_Rev.A" ){ #3.1 Mbit/s
 		return 1;
 	}
 	if( networkType == "eHRPD"){ #same EVDO_A
 		return 1;
 	}
-	if( networkType == "EVDO_B" || networkType == "EV-DO Rel.B" || networkType =="EV-DORev.B"){ #14.7 Mbit/s
+	if( networkType == "EVDO_B" || networkType == "EV-DO Rel.B" || networkType =="EV-DORev.B" || networkType == "EV-DO_Rev.B" ){ #14.7 Mbit/s
 		return 1;
 	}
 	if( networkType == "UMTS"){ #14.4 Mbit/s
@@ -75,12 +98,6 @@ function getNatType(natType, connectionMode, mobileNetworkType, prevNatType, net
   return natType
 }
 
-BEGIN{
-  FS=";"
-  VERSIONS_SINCE_VERSION_2=20
-  MAXDIF_OFFLINE_V2=604800000 # 1 week
-  MAXDIF_ONLINE_V2=1499999 # 24.99999999 minute
-}
 FNR==1{
   if(prevTimeStamp-startTimeStamp>0){
     sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
@@ -161,18 +178,96 @@ FNR>1{
     timeZone=int($6)
     lastDisconnect=int($35)
     deltaTime=rectime-prevTimeStamp
-    if (deltaTime<0 || deltaTime>MAXDIF_OFFLINE_V2 || prevchargestate!=chargestate) {  #newLine
-      if(prevchargestate!=chargestate && deltaTime>=0 && deltaTime<=maxdif){
-        if (rectime-startTimeStamp>0) {
-          sessionDeltaTime+=(rectime-startTimeStamp)
-          outStr=outStr" "(rectime-startTimeStamp)" "recnat
-  	    } 
-      } else {
+    if (deltaTime<0 || deltaTime>MAXDIF_OFFLINE_V2 || prevchargestate!=chargestate) {
+      newLineIsNecessary = 1
+    } else {
+      newLineIsNecessary = 0
+    }
+    if (appversion >= VERSIONS_SINCE_LAST_DISCONNECT_IS_OK ) {
+      if( deltaTime<0 || deltaTime>MAXDIF_OFFLINE_V2 ) {
         if (prevTimeStamp-startTimeStamp>0) {
           sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
           outStr=outStr" "(prevTimeStamp-startTimeStamp)" "nat
-        } 
+        }
+        startTimeStamp=prevTimeStamp
+      } else if (pervNetworkInfo == 5 && (deltaTime>MAXDIF_ONLINE_V2 || networkInfo != 5 ))  {
+        if (lastDisconnect>prevTimeStamp && (lastDisconnect-prevTimeStamp)<=MAXDIF_ONLINE_V2) {
+          if (lastDisconnect-startTimeStamp>0) {
+            sessionDeltaTime+=(lastDisconnect-startTimeStamp)
+            outStr=outStr" "(lastDisconnect-startTimeStamp)" "nat
+          }
+          startTimeStamp=lastDisconnect
+        } else {
+          if (prevTimeStamp-startTimeStamp>0) {
+            sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
+            outStr=outStr" "(prevTimeStamp-startTimeStamp)" "nat
+          }
+          startTimeStamp=prevTimeStamp
+        }
+        if(rectime-startTimeStamp>0) {
+           sessionDeltaTime+=(rectime-startTimeStamp)
+           outStr=outStr" "(rectime-startTimeStamp)" -2"
+        }
+        startTimeStamp=rectime
+      } else if( recnat!=nat || recIP!=prevIP || prevchargestate!=chargestate ) {
+        if(rectime-startTimeStamp>0) {
+          sessionDeltaTime+=(rectime-startTimeStamp)
+          outStr=outStr" "(rectime-startTimeStamp)" "nat
+        }
+        startTimeStamp=rectime
       }
+    } else {
+      if( deltaTime<0 || deltaTime>MAXDIF_OFFLINE_V2 ) {
+        if (prevTimeStamp-startTimeStamp>0) {
+          sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
+          outStr=outStr" "(prevTimeStamp-startTimeStamp)" "nat
+        }
+        startTimeStamp=prevTimeStamp
+      } else if (pervNetworkInfo == 5 && networkInfo != 5 && deltaTime<=MAXDIF_ONLINE_V2 ) {
+        if(androidVersion >= ANDROID_VERSION_SINCE_NO_BROADCAST) {
+          if(rectime-MINUTE-startTimeStamp>0) {
+            sessionDeltaTime+=(rectime-startTimeStamp)
+            outStr=outStr" "(rectime-startTimeStamp)" "nat
+            startTimeStamp=rectime-MINUTE
+          } else {
+            if (prevTimeStamp-startTimeStamp>0) {
+              sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
+              outStr=outStr" "(prevTimeStamp-startTimeStamp)" "nat
+            }
+            startTimeStamp=prevTimeStamp
+          }
+          if(rectime-startTimeStamp>0) {
+            sessionDeltaTime+=(rectime-startTimeStamp)
+            outStr=outStr" "(rectime-startTimeStamp)" -2"
+          }
+          startTimeStamp=rectime
+        } else {
+          if(rectime-startTimeStamp>0) {
+            sessionDeltaTime+=(rectime-startTimeStamp)
+            outStr=outStr" "(rectime-startTimeStamp)" "nat
+          }
+          startTimeStamp=rectime
+        }
+      } else if (pervNetworkInfo == 5 && deltaTime>MAXDIF_ONLINE_V2 ) {
+        if (prevTimeStamp-startTimeStamp>0) {
+          sessionDeltaTime+=(prevTimeStamp-startTimeStamp)
+          outStr=outStr" "(prevTimeStamp-startTimeStamp)" "nat
+        }
+        startTimeStamp=prevTimeStamp
+        if(rectime-startTimeStamp>0) {
+          sessionDeltaTime+=(rectime-startTimeStamp)
+          outStr=outStr" "(rectime-startTimeStamp)" -2"
+        }
+        startTimeStamp=rectime
+      } else if( recnat!=nat || recIP!=prevIP || prevchargestate!=chargestate ) {
+        if(rectime-startTimeStamp>0) {
+          sessionDeltaTime+=(rectime-startTimeStamp)
+          outStr=outStr" "(rectime-startTimeStamp)" "nat
+        }
+        startTimeStamp=rectime
+      }
+    }
+    if (newLineIsNecessary==1) {
       if (sessionDeltaTime > 0 && prevchargestate==1) {
         print(outStr)
       }
@@ -181,42 +276,6 @@ FNR>1{
       line++
       startTimeStamp=rectime
       outStr=filename[1]" "line" "startTimeStamp" "timeZone" :"
-    } else if ( pervNetworkInfo == 5 && deltaTime>MAXDIF_ONLINE_V2 ) { #deltaTime > 24.99999999 minute
-      if (prevTimeStamp+1-startTimeStamp>0) {
-        sessionDeltaTime+=(prevTimeStamp+1-startTimeStamp)
-        outStr=outStr" "(prevTimeStamp+1-startTimeStamp)" "nat
-      }
-      startTimeStamp=prevTimeStamp+1
-      if(rectime-startTimeStamp>0) {
-         sessionDeltaTime+=(rectime-startTimeStamp)
-	       outStr=outStr" "(rectime-startTimeStamp)" -2"
-	    } 
-      startTimeStamp=rectime
-    } else if ( pervNetworkInfo == 5 && networkInfo != 5 ) {
-      if (lastDisconnect>prevTimeStamp){
-        if (lastDisconnect-startTimeStamp>0) {
-          sessionDeltaTime+=(lastDisconnect-startTimeStamp)
-          outStr=outStr" "(lastDisconnect-startTimeStamp)" "nat
-        } 
-        startTimeStamp=lastDisconnect
-      } else {
-        if (prevTimeStamp+1-startTimeStamp>0) {
-          sessionDeltaTime+=(prevTimeStamp+1-startTimeStamp)
-          outStr=outStr" "(prevTimeStamp+1-startTimeStamp)" "nat
-        }
-        startTimeStamp=prevTimeStamp+1
-        if(rectime-startTimeStamp>0) {
-           sessionDeltaTime+=(rectime-startTimeStamp)
-	         outStr=outStr" "(rectime-startTimeStamp)" -2"
-	      } 
-        startTimeStamp=rectime
-      }
-    } else if( recnat!=nat || recIP!=prevIP ) {
-      if(rectime-startTimeStamp>0) {
-        sessionDeltaTime+=(rectime-startTimeStamp)
-        outStr=outStr" "(rectime-startTimeStamp)" "nat
-      }
-      startTimeStamp=rectime
     }
   } else {
     rectime=$12
@@ -227,7 +286,7 @@ FNR>1{
     recIP=$10
     timeZone=int($39)
     appversion = int($38)
-    if(nat==0 || nat==2 || nat==3 || nat==4 || nat==5 || nat==6) { 
+    if(isOnline(nat)==1) {
       maxdif=1199999 #19.99999999 minute
       online=1
     } else {
@@ -239,7 +298,7 @@ FNR>1{
       if(is_charging_important==1 && prevchargestate!=chargestate && deltaTime>=0 && deltaTime<=maxdif){
         if (rectime-startTimeStamp>0) {
           sessionDeltaTime+=(rectime-startTimeStamp)
-          outStr=outStr" "(rectime-startTimeStamp)" "recnat
+          outStr=outStr" "(rectime-startTimeStamp)" "nat
   	    } 
       } else {
         if (prevTimeStamp-startTimeStamp>0) {

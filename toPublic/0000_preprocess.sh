@@ -9,6 +9,7 @@ is_remove_slow_mobilenetwork=1
 is_drop_100percent_offline_session=false
 is_charging_important=1
 is_keep_temporary_directories=false
+is_make_sessions=false
 number_of_cores=2
 for param in $*; do
   if [ $param = keepTmp -o $param = keepTemporaryDirectories ]; then 
@@ -38,13 +39,25 @@ for param in $*; do
   if echo $param | egrep -q "^[0-9]+$" ; then
     number_of_cores=$param
   fi
+  if [ $param = makeSessions -o $param = session ]; then
+    is_make_sessions=true
+  fi
 done
-rm -r out 2> /dev/null; mkdir out; cd out; mkdir $(seq 0 $((number_of_cores-1))); cd ..
+rm -r out 2> /dev/null; mkdir out; cd out; mkdir $(seq 0 $(($number_of_cores-1))); cd ..
 python3 0010_json_to_csv.py $number_of_cores
-rm out/null 2> /dev/null
-rm -r out2  2> /dev/null
-mkdir out2
-python3 0020_sort_by_android_time.py
+for core in $(ls -l out | awk '/^d/{print($NF)}'); do rm ${core}/null 2> /dev/null; for filename in ${core}/*; do cat $filename >> out/$(echo $filename | cut -d"/" -f3); done; rm -r ${core} 2> /dev/null; done
+rm -r out2 2> /dev/null; mkdir out2; cd out2; mkdir $(seq 0 $(($number_of_cores-1))); cd ..
+if [ $is_make_sessions = false ]; then
+  python3 0020_delete_duplication.py $number_of_cores toPublic
+else
+  python3 0020_delete_duplication.py $number_of_cores
+fi
+mkdir toPublic 2> /dev/null; cd toPublic/; for year in $(seq 2010 2030); do for i in  $(seq 1 12); do if (($i<10)); then fname=$year"-0"$i; else fname=$year"-"$i; fi; mkdir $fname 2> /dev/null ; done done; cd ..
+for core in out2/*; do rm ${core}/*. 2> /dev/null; for filename in ${core}/*; do mv $filename "toPublic/"$(echo $filename | awk -F"." '{print($NF)}')"/"$(basename $filename | awk -F"." '{str="";for(i=1;i<NF;i++){str=str""$i;}print(str)}'); done done
+for fold in toPublic/*; do if (( $(ls -1 $fold | wc -l) == 0 )); then rm -r $fold; fi done
+
+
+#for core in out2/*; do rm ${core}/*. 2> /dev/null; done
 if [ $is_keep_temporary_directories = false ]; then
   rm -r out
 fi

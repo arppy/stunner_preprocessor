@@ -12,48 +12,51 @@ def unOrderedNatString(senderNat, receiverNat):
   return ''+str(senderNat)+' '+str(receiverNat)
 
 AV=23
-  
+filelist=[]
+filelist.append('res/res_v2/stuntest-2019-01-22.csv')
+filelist.append('res/res_v2/stuntest-2019-02-21.csv')
 m = {}
 i=0
-with open('res/res_v2/stuntest-2019-01-17.csv', encoding='utf8') as csvfile:
-  reader = csv.reader(csvfile, delimiter=',', quotechar='"')
-  for line in reader:
-    i+=1
-    if line[0]!="" and line[1] !="" :
-      p2pJson = {}
-      try : 
-        p2pJson = json.loads(line[0])
-      except :
-        print("p2p",i,line[0])
-      discoveryJson = {}
-      try :
-        discoveryJson = json.loads(line[1])
-      except :
-        print("nat",i,line[1])
-      mJson = {}
-      mJson.update(discoveryJson)
-      mJson.update(p2pJson)
-      if "natResultsDTO" in discoveryJson and discoveryJson["natResultsDTO"]['STUNserver']=="N/A" and discoveryJson["natResultsDTO"]['discoveryResult']==-2 :
-        #print(mJson)
-        mJson["natResultsDTO"]['discoveryResult']=-3
-      if 'appVersion' in discoveryJson and discoveryJson['appVersion'] >= 20 and 'connectionID' in p2pJson and p2pJson['connectionID'] != -1 and p2pJson['connectionID'] != 0 : 
-        if not p2pJson['connectionID'] in m :
-          m[p2pJson['connectionID']] = {}
-        keystring=''+p2pJson['androidID']+p2pJson['peerID']+str(p2pJson['connectionStart'])+str(discoveryJson['recordID'])
-        if len(m[p2pJson['connectionID']]) < 1 :
-          m[p2pJson['connectionID']][p2pJson['connectionStart']] = {}
-          m[p2pJson['connectionID']][p2pJson['connectionStart']][keystring] = mJson
-        else :
-          isFoundPair = False
-          for timestamp, records in m[p2pJson['connectionID']].items() :
-            if abs( p2pJson['connectionStart']-timestamp ) < 1000*60*60*24*3.5 :
-              m[p2pJson['connectionID']][timestamp][keystring] = mJson
-              isFoundPair = True
-              break
-          if isFoundPair == False :
-            #print(str(p2pJson['connectionStart']),str(timestamp),str(abs( p2pJson['connectionStart']-timestamp )/1000/60/60/24))
+for file in filelist :
+  with open(file, encoding='utf8') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+    for line in reader:
+      i+=1
+      if line[0]!="" and line[1] !="" :
+        p2pJson = {}
+        try :
+          p2pJson = json.loads(line[0])
+        except :
+          print("p2p",i,line[0])
+        discoveryJson = {}
+        try :
+          discoveryJson = json.loads(line[1])
+        except :
+          print("nat",i,line[1])
+        mJson = {}
+        mJson.update(discoveryJson)
+        mJson.update(p2pJson)
+        if "natResultsDTO" in discoveryJson and discoveryJson["natResultsDTO"]['STUNserver']=="N/A" and discoveryJson["natResultsDTO"]['discoveryResult']==-2 :
+          #print(mJson)
+          mJson["natResultsDTO"]['discoveryResult']=-3
+        if 'appVersion' in discoveryJson and discoveryJson['appVersion'] >= 20 and 'connectionID' in p2pJson and p2pJson['connectionID'] != -1 and p2pJson['connectionID'] != 0 :
+          if not p2pJson['connectionID'] in m :
+            m[p2pJson['connectionID']] = {}
+          keystring=''+p2pJson['androidID']+p2pJson['peerID']+str(p2pJson['connectionStart'])+str(discoveryJson['recordID'])
+          if len(m[p2pJson['connectionID']]) < 1 :
             m[p2pJson['connectionID']][p2pJson['connectionStart']] = {}
             m[p2pJson['connectionID']][p2pJson['connectionStart']][keystring] = mJson
+          else :
+            isFoundPair = False
+            for timestamp, records in m[p2pJson['connectionID']].items() :
+              if abs( p2pJson['connectionStart']-timestamp ) < 1000*60*60*24*3.5 :
+                m[p2pJson['connectionID']][timestamp][keystring] = mJson
+                isFoundPair = True
+                break
+            if isFoundPair == False :
+              #print(str(p2pJson['connectionStart']),str(timestamp),str(abs( p2pJson['connectionStart']-timestamp )/1000/60/60/24))
+              m[p2pJson['connectionID']][p2pJson['connectionStart']] = {}
+              m[p2pJson['connectionID']][p2pJson['connectionStart']][keystring] = mJson
 i=0
 p2pRes = {}
 
@@ -64,7 +67,7 @@ FIREBASE_CONNECTION_ERROR_P2P_RES = r"Signaling server error"
 UNKNOWN_ERROR_P2P_RES = r"unknownError"
 PAIRING_WITH_PREV_VERSION_P2P_RES = r"pairingWithPrevVersion"
 CONNECTION_TIMEOUT_WITHOUT_MEASUREMENT_FROM_PEER_P2P_RES = r"Timed out without peer"
-CONNECTION_TIMEOUT_P2P_RES = r"Timed out after successful signaling"
+CONNECTION_TIMEOUT_P2P_RES = r"Timed out"# after successful signaling"
 CONNECTION_WITHOUT_MEASUREMENT_FROM_PEER_P2P_RES = r"startConnectingWithoutPairOfP2PRecord"
 NOBODY_WAS_AVAILABLE_P2P_RES = r"nobodyIsAvailable"
 OTHER_UNSUCCESFUL_PAIRING_P2P_RES = r"Others"
