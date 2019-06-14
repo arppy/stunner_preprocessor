@@ -3,6 +3,8 @@ import csv
 import time
 import gc
 import sys
+import json
+import hashlib
 import re
 import copy
 from collections import defaultdict
@@ -92,10 +94,12 @@ def toStringV1(originRow,record,numOfLinesPerUser):
   outStr+=str(numOfLinesPerUser)
   return outStr
 
-def toStringV2(record):
+def toStringV2(record,p2p):
   outStr=""
   for item in record:
     outStr+=item+";"
+  for item in p2p:
+    outStr += str(item) + ";"
   return outStr[:-1]
 
 def denoteRecordID(line):
@@ -112,7 +116,7 @@ def isNatAndWebRtcdiscovery(line):
     return True
   return False
 
-def sortAndDuplicateFiltering(fileList, outSufix):
+def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
   lastTime = time.time()
   lastTime = whatTheTime(lastTime)
   # FILE_READING
@@ -124,6 +128,7 @@ def sortAndDuplicateFiltering(fileList, outSufix):
   numOfExaminedRecordAll = 0.0
   numOfUser = 0.0
   numberOfDeletedDuplicated = 0.0
+  numberOfP2PRecordAdded = 0
   jMax = 0
   # numberOfPotentialDuplicated = 0.0
   for fileName in fileList:
@@ -175,7 +180,28 @@ def sortAndDuplicateFiltering(fileList, outSufix):
         if tempDate != prevTempDate :
           file.close()
           file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+tempDate, "a+", encoding="utf-8")
-        file.write('' + toStringV2(line) + '\n')
+        outP2P=[]
+        if fileName in p2pM and str(line[3]) in p2pM[fileName]:
+          deviceID = p2pM[fileName][line[3]]["androidID"]
+          hashSHA256 = hashlib.sha256()
+          hashSHA256.update((deviceID + "-" + deviceID).encode())
+          outP2P.append(str(hashSHA256.hexdigest()))
+          peerID = p2pM[fileName][line[3]]["peerID"]
+          hashSHA256 = hashlib.sha256()
+          hashSHA256.update((peerID + "-" + peerID).encode())
+          outP2P.append(str(hashSHA256.hexdigest()))
+          outP2P.append(p2pM[fileName][line[3]]["connectionStart"])
+          outP2P.append(p2pM[fileName][line[3]]["channelOpen"])
+          outP2P.append(p2pM[fileName][line[3]]["channelClosed"])
+          outP2P.append(p2pM[fileName][line[3]]["connectionEnd"])
+          outP2P.append(p2pM[fileName][line[3]]["connectionID"])
+          outP2P.append(p2pM[fileName][line[3]]["exitStatus"])
+          outP2P.append(p2pM[fileName][line[3]]["sender"])
+          numberOfP2PRecordAdded+=1
+        else :
+          for i in range(9) :
+            outP2P.append("")
+        file.write('' + toStringV2(line[:len(line)-1],outP2P) + '\n')
         prevTempDate = tempDate
       file.close()
       numOfUser+=1
@@ -186,8 +212,86 @@ def sortAndDuplicateFiltering(fileList, outSufix):
       prevline.clear()
       if numOfUser%100==0 :
         n = gc.collect()
-  print("TotalNumberOfExaminedRecord: " + str(numOfExaminedRecordAll) + " NumberOfAppropriateRecord: " + str(numOfRecordAll) + " NumberOfDeletedDuplicated: " + str(numberOfDeletedDuplicated), jMax)
+  print("TotalNumberOfExaminedRecord: " + str(numOfExaminedRecordAll) + " NumberOfAppropriateRecord: " + str(numOfRecordAll) + " NumberOfDeletedDuplicated: " + str(numberOfDeletedDuplicated), "Number Of P2P assignment: "+str(numberOfP2PRecordAdded))
   lastTime = whatTheTime(lastTime)
+
+def replaceProblematicChars(inputString):
+  niceString = inputString.replace('\'', '')
+  niceString = niceString.replace('">\', \'L:> M:AB@5==K5 2K7>2K','L:M:AB@5==K52K72K')
+  niceString = niceString.replace('">|-|L:> M:AB@5==K5 2K7>2K','L:M:AB@5==K52K72K')
+  niceString = niceString.replace('">, L:> M:AB@5==K5 2K7>2K','L:M:AB@5==K52K72K')
+  niceString = niceString.replace('\x1f>8A: A\', \'C61K','x1f8AAC61K')
+  niceString = niceString.replace('\x1f>8A: A|-|C61K','x1f8AAC61K')
+  niceString = niceString.replace('\x1f>8A: A, C61K','x1f8AAC61K')
+  niceString = niceString.replace('=\n', '=')
+  niceString = niceString.replace('=\\n', '=')
+  niceString = niceString.replace('=\\\n', '=')
+  niceString = niceString.replace('=\\\\n', '=')
+  niceString = niceString.replace('=\\\\\\\\n', '=')
+  niceString = niceString.replace('\n', '')
+  niceString = niceString.replace('\t', '')
+  niceString = niceString.replace('"\\\\\\\\"Vamos Ecuador\\\\\\\\""', '"Vamos Ecuador"')
+  niceString = niceString.replace('ZAIN IQ\\n', 'ZAIN IQ')
+  niceString = niceString.replace('\\\\', '')
+  niceString = niceString.replace('\\\\\\\\', '')  # inputString = r''+inputString
+  niceString = niceString.replace('\\', '')
+  niceString = niceString.replace('""O2 - UK""', '"O2-UK"')
+  niceString = niceString.replace('""AT&T""', '"AT&T"')
+  niceString = niceString.replace('""OrangeF""', '"OrangeF"')
+  niceString = niceString.replace('""BIMcell""', '"BIMcell"')
+  niceString = niceString.replace('""TaiwanMobile""', '"TaiwanMobile"')
+  niceString = niceString.replace("/", "").replace("+", "").replace("=", "").replace("?", "").replace(" ", "")
+  return niceString
+
+AV=23
+filelist=[]
+filelist.append('../res/res_v2/stuntest-2019-01-22.csv')
+filelist.append('../res/res_v2/stuntest-2019-02-21.csv')
+discoM = {}
+p2pM = {}
+i=0
+cantopen=0
+numberOfDuplicated=0
+numberOfP2PRecord=0.0
+for file in filelist :
+  with open(file, encoding='utf8') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+    for line in reader:
+      i+=1
+      if line[0]!="" and line[1] !="" :
+        p2pJson = {}
+        try :
+          p2pJson = json.loads(line[0])
+        except :
+          cantopen+=1
+          #print("p2p",i,line[0])
+        discoveryJson = {}
+        try :
+          discoveryJson = json.loads(line[1])
+        except :
+          cantopen += 1
+          #print("discovery",i,line[1])
+        if "natResultsDTO" in discoveryJson and discoveryJson["natResultsDTO"]['STUNserver']=="N/A" and discoveryJson["natResultsDTO"]['discoveryResult']==-2 :
+          #print(mJson)
+          discoveryJson["natResultsDTO"]['discoveryResult']=-3
+        if 'recordID' in discoveryJson and 'androidID' in discoveryJson and 'appVersion' in discoveryJson and discoveryJson['appVersion'] >= 20 and 'connectionID' in p2pJson and p2pJson['connectionID'] != -1 and p2pJson['connectionID'] != 0 :
+          numberOfP2PRecord+=1.0
+          androidID = replaceProblematicChars(discoveryJson['androidID'])+"u003dn"
+          recordID = str(discoveryJson['recordID'])
+          if not androidID in discoM :
+            discoM[androidID] = {}
+            p2pM[androidID] = {}
+          if not recordID in discoM[androidID] :
+            discoM[androidID][recordID] = discoveryJson
+            p2pM[androidID][recordID] = p2pJson
+          else :
+            if p2pM[androidID][recordID]["connectionID"] != p2pJson['connectionID'] :
+              if p2pJson['exitStatus'] != -2 :
+                discoM[androidID][recordID] = discoveryJson
+                p2pM[androidID][recordID] = p2pJson
+              elif p2pM[androidID][recordID]["exitStatus"]  == -2 :
+                #print("duplicated recordID:",str(recordID),discoveryJson,p2pJson,"<--->",discoM[androidID][recordID],p2pM[androidID][recordID])
+                numberOfDuplicated+=1
 
 #MAIN
 fileList = {}
@@ -218,7 +322,7 @@ for fileName in files:
 #print(fi, sumOfSize, str(THREAD_FILE_SIZE_BLOCK_SIZE), str(NUMBER_OF_CORES-core))
 processes = []
 for core in range(NUMBER_OF_CORES) :
-  processes.append(multiprocessing.Process(target=sortAndDuplicateFiltering, args=(fileList[core], core)))
+  processes.append(multiprocessing.Process(target=sortAndDuplicateFiltering, args=(fileList[core], core, p2pM)))
   processes[-1].start()  # start the thread we just created
   print(len(fileList[core]))
 for t in processes:
