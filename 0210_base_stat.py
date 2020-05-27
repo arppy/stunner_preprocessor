@@ -42,13 +42,14 @@ for file in filelist :
         if 'appVersion' in discoveryJson and discoveryJson['appVersion'] >= 20 and 'connectionID' in p2pJson and p2pJson['connectionID'] != -1 and p2pJson['connectionID'] != 0 :
           if not p2pJson['connectionID'] in m :
             m[p2pJson['connectionID']] = {}
-          keystring=''+p2pJson['androidID']+p2pJson['peerID']+str(p2pJson['connectionStart'])+str(discoveryJson['recordID'])
+          keystring=''+p2pJson['androidID']+p2pJson['peerID']+str(p2pJson['connectionStart'])+str(discoveryJson['recordID'])+str(mJson["natResultsDTO"]['discoveryResult'])
           if len(m[p2pJson['connectionID']]) < 1 :
             m[p2pJson['connectionID']][p2pJson['connectionStart']] = {}
             m[p2pJson['connectionID']][p2pJson['connectionStart']][keystring] = mJson
           else :
             isFoundPair = False
             for timestamp, records in m[p2pJson['connectionID']].items() :
+              # 3.5 day => 1000*60*60*24*3.5
               if abs( p2pJson['connectionStart']-timestamp ) < 1000*60*60*24*3.5 :
                 m[p2pJson['connectionID']][timestamp][keystring] = mJson
                 isFoundPair = True

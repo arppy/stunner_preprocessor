@@ -1,0 +1,522 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Stunner.md</title><style></style></head><body id="preview">
+<h1><a id="Stunner_Dataset_0"></a>Stunner Dataset</h1>
+<p>The <a href="https://github.com/bilickiv/stunner">Stunner</a> has been available for download from the <a href="https://play.google.com/store/apps/details?id=hu.uszeged.inf.wlab.stunner">Play Store</a>  since 26th December 2013. Over the years, stunner has been downloaded and installed by 14,727 users on 745 different device. The functionality of our app is to provide the user with information about the current network environment of the phone: private and public IP, NAT type, MAC address, and some other network related <a href="http://www.inf.u-szeged.hu/~berta/publications/P2P2014_46.pdf">details</a>. At the same time, the app collects data about the phone and logs it to our servers. The data collection includes more than 70 million data records from over 100 countries measuring the NAT characteristics of more than 1300 carriers and over 35000 WiFi environments.</p>
+<h2><a id="Citation_Request_4"></a>Citation Request</h2>
+<p>The dataset was provided by the University of Szeged as a result of an ongoing data collection campaign, and publicly available at <a href="http://www.inf.u-szeged.hu/stunner">http://www.inf.u-szeged.hu/stunner</a> for non-profit usage. The campaign was supported by the Hungarian Government and the European Regional Development Fund under the grant number GINOP-2.3.2-15-2016-00037 (“Internet of Living Things”) and by the Hungarian Ministry of Human Capacities (grant 20391-3/2018/FEKUSTRAT)</p>
+<p><strong>Please cite this paper:</strong> Zoltán Szabó, Krisztián Téglás, Árpád Berta, Márk Jelasity, Vilmos Bilicki. <strong>Stunner: A Smart Phone Trace for Developing Decentralized Edge Systems.</strong> <em>In Proceedings of the 19th International Conference on Distributed Applications and Interoperable Systems (DAIS 2019)</em>, Copenhagen, Denmark, 2019.</p>
+<p><a href="http://www.inf.u-szeged.hu/~berta/publications/STBJB19.bib">Download: BibTex</a></p>
+<pre><code class="language-bibtex">@inproceedings{STBJB19,
+  author=&quot;Szab{\'o}, Zolt{\'a}n and T{\'e}gl{\'a}s, Kriszti{\'a}n and Berta, {\'A}rp{\'a}d and Jelasity, M{\'a}rk and Bilicki, Vilmos&quot;,
+  editor=&quot;Pereira, Jos{\'e} and Ricci, Laura&quot;,
+  title=&quot;Stunner: A Smart Phone Trace for Developing Decentralized Edge Systems&quot;,
+  booktitle=&quot;Proceedings of the 19th International Conference on Distributed Applications and Interoperable Systems ({DAIS} 2019)&quot;,
+  year=&quot;2019&quot;,
+  publisher=&quot;Springer International Publishing&quot;,
+  address=&quot;Cham&quot;,
+  pages=&quot;108--115&quot;,
+  abstract=&quot;Conducting research into edge and fog computing often involves experimenting with actual deployments, which is costly and time-consuming, so we need to rely on realistic simulations at least in the early phases of research. To be able to do so we need to collect real data that allows us to perform trace-based simulation and to extract crucial statistics. To achieve this for the domain of distributed smartphone applications, for many years we have been collecting data via smartphones concerning NAT type, the availability of WiFi and cellular networks, the battery level, and many more attributes. Recently, we enhanced our data collecting Android app Stunner by taking actual P2P measurements. Here, we outline our data collection method and the technical details, including some challenges we faced with data cleansing. We present a preliminary set of statistics based on the data for illustration. We also make our new database freely available for research purposes.&quot;,
+  isbn=&quot;978-3-030-22496-7&quot;
+  location=&quot;Copenhagen, Denmark&quot;
+  doi=&quot;10.1007/978-3-030-22496-7_7&quot;
+}
+</code></pre>
+<p><a href="https://drive.google.com/drive/folders/1vChNLYOa57MaJTzpsxmNIrVDN14JoLbO">I agree with the terms and conditions. Download: Data</a></p>
+<h2><a id="Measurement_description_31"></a>Measurement description</h2>
+<p>In the versions 1-19 measurements were triggered either by the user (when the app is used) or by specific events that signal the change of some of the properties we measure: battery charging status, network availability. There was periodic measurement as well every 10 minutes, if no other events occurred. <a href="(http://www.inf.u-szeged.hu/~berta/publications/P2P2014_46.pdf)">More info.</a></p>
+<p>Since version 20, we check the state of the phone every minute, and if there is a change in any important locally available networking parameter or in charging availability, we perform a full measurement. A measurement is still triggered if the user explicitly requests one, and it is also triggered by an incoming P2P measurement request. Also, if there is no measurement for at least 10 minutes, a full measurement is performed. <a href="https://www.doi.org/10.1007/978-3-030-22496-7_7">More info.</a></p>
+<p>P2P connection measurements are also a new feature in the version 20 that are performed every time a measurement is carried out. They are based on the WebRTC protocol, with Firebase as a signaling server, and a STUN server. We build and measure only direct connections, the TURN protocol for relaying is not used. Every node that is online (has network access and is on a charger) attempts to connect to a peer. To do this, the node sends a request to the Firebase server after collecting its own network data. The server attempts to find a random online peer and manages the information exchange using the Session Description Protocol (SDP) to help create a two-way P2P connection over UDP. If the two-way channel is successfully opened then a tiny data massage is exchanged. The channel is always closed at the end of the measurement. One connection is allowed at a time, every additional offer is rejected. The signaling server maintains an online membership list. <a href="https://www.doi.org/10.1007/978-3-030-22496-7_7">More info.</a></p>
+<h2><a id="Data_structure_40"></a>Data structure</h2>
+<p>Stunner Data is available in format of CSV files per user per month.</p>
+<table class="table table-striped table-bordered">
+<thead>
+<tr>
+<th>Field name</th>
+<th style="text-align:center">since (version)</th>
+<th style="text-align:center">column description</th>
+<th style="text-align:center">Code description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>fileCreationDate</em></td>
+<td style="text-align:center">13</td>
+<td style="text-align:center">server side timestamp when the file was created on the server which contains the measurement</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>serverSideUploadDate</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">server side timestamp when the measured data was uploaded to the server</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>androidID</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">unique <a href="https://developer.android.com/reference/android/provider/Settings.Secure.html#ANDROID_ID">android device ID</a> (hashed)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>recordID</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">ascendant measurement ID (possible restart)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>timestamp</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">UNIX <a href="https://developer.android.com/reference/java/sql/Timestamp">timestamp</a> which represent the start of the measurement</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>timeZoneUTCOffset</em></td>
+<td style="text-align:center">9</td>
+<td style="text-align:center">difference between UTC and local time</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>triggerCode</em></td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">Event that started the measurement</td>
+<td style="text-align:center">-1: UNKNOWN, 0: USER, 1 : CONNECTION CHANGED, 2: BATTERY LOW, 3: BATTERY POWER CONNECTED, 4: BATTERY POWER DISCONNECTED  5: SCHEDULED STATE CHECK, 6: BOOT COMPLETED, 7: CONNECTION LOST, 8: CONNECTION ESTABLISHED  9: SERVICE TOGGLED, 10: ACTION SHUTDOWN (since v22), 11: FIREBASE MESSAGE IS RECEIVED (since v22), 13: FIRST START (since v22) 4: REBOOT (since v22), 15: TIME CHANGED (since v22), 16: TIMEZONE CHANGED (since v22), 17: DATE CHANGED (since v22), 18: LAST DISCONNECT CHANGED (since v22), 19: AIRPLANE MODE CHANGED (since v22)</td>
+</tr>
+<tr>
+<td><em>androidVersion</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">android <a href="https://developer.android.com/reference/android/os/Build.VERSION.html#SDK_INT">version</a> of the phone</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>appVersion</em></td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">current application <a href="https://developer.android.com/studio/publish/versioning">version</a> on the phone</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>connectionMode</em></td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">type of the connection</td>
+<td style="text-align:center">-2: Unknown, -1: Not connected, 0: Mobile, 1: WiFi, 2: other</td>
+</tr>
+<tr>
+<td><em>networkInfo</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">network connection <a href="https://developer.android.com/reference/android/net/NetworkInfo">description</a></td>
+<td style="text-align:center">-1: UNKNOWN, 0: IDLE, 1: SCANNING, 2: CONNECTING, 3: AUTHENTICATING, 4: OBTAINING IPADDR, 5: CONNECTED, 6: SUSPENDED, 7: DISCONNECTING, 8: DISCONNECTED, 9: FAILED, 10: BLOCKED,  11: VERIFYING POOR LINK, 12: CAPTIVE PORTAL CHECK</td>
+</tr>
+<tr>
+<td><em>localIP</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">hashed local(private) IP address</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>macAddress</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">hashed MAC <a href="https://developer.android.com/reference/android/net/MacAddress">address</a> of the WiFi adapter</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>ssid:</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">hashed network <a href="https://developer.android.com/reference/android/net/wifi/WifiManager">ID</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>state:</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">wifi <a href="https://developer.android.com/reference/android/net/wifi/WifiManager">state</a></td>
+<td style="text-align:center">0: WIFI STATE DISABLING, 1: WIFI STATE DISABLED, 2: WIFI STATE ENABLING, &lt;br&gt; 3: WIFI STATE ENABLED, 4: WIFI STATE UNKNOWN</td>
+</tr>
+<tr>
+<td><em>bandwith</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">network <a href="https://developer.android.com/reference/android/net/ConnectivityManager">bandwith</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>rssi</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">WiFi signal <a href="https://developer.android.com/reference/android/net/wifi/WifiManager">strength</a> (dBm)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>carrier</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">system organization name</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>mobileNetworkType</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">mobile network type <a href="https://developer.android.com/reference/androidx/work/NetworkType">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>networkCountryIso</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">country name based on the <a href="https://developer.android.com/reference/android/telephony/TelephonyManager">network</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>simCountryIso</em></td>
+<td style="text-align:center">13</td>
+<td style="text-align:center">country name based on the <a href="https://developer.android.com/reference/android/telephony/TelephonyManager">sim</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>roaming</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">roaming status <a href="https://developer.android.com/reference/android/net/NetworkInfo.html#isRoaming()">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>phoneType</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">phone <a href="https://developer.android.com/reference/android/telephony/TelephonyManager">type</a></td>
+<td style="text-align:center">0: None, 1: GSM, 2: CDMA, 3: SIP</td>
+</tr>
+<tr>
+<td><em>airplane</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">airplane mode status info</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>discoveryResult</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">the request result which describe the type of the measured NAT</td>
+<td style="text-align:center">-3: DID NOT STARTED, -2: UNKNOWN, -1: ERROR, 0: OPEN ACCESS, 1: FIREWALL BLOCKS, 2: SYMMETRIC UDP FIREWALL, 3: FULL CONE, 4: RESTRICTED CONE, 5: PORT RESTRICTED CONE, 6: SYMMETRIC ONE</td>
+</tr>
+<tr>
+<td><em>discoveryResultExitStatus</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">the NAT measurement result code</td>
+<td style="text-align:center">-1: UNKNOWN, 0: END_SUCCESSFUL, 1: ERROR, 2: SOCKET EXCEPTION, 3: UNKNOWN HOST EXCEPTION, 4: MESSAGE ATTRIBUTE PARSING EXCEPTION, 5: MESSAGE HEADER PARSING EXCEPTION, 6: UTILITY EXCEPTION, 7: IO EXCEPTION, 8: MESSAGE ATTRIBUTE EXCEPTION, 9: NULL POINTER EXCEPTION</td>
+</tr>
+<tr>
+<td><em>publicIP</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">hashed public IP address</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>STUNserver</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">name of the STUN server which was used for the measurement</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>lastDiscovery</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of last NAT measurement</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>webRTCLocalTestConnectionStart</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC connection start</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>webRTCLocalTestConnectionEnd</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC connection end</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>webRTCLocalTestChannelOpen</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC channel open</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>webRTCLocalTestChannelClosed</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC channel closed</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>webRTCLocalTestExitStatus</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">the local test webRTC measurement result codes</td>
+<td style="text-align:center">-10: UNKNOWN, -3: DID NOT STARTED, -2: CONNECTION TIMED OUT, 0: NOT CONNECTED TO ANY NETWORK, 2: CONNECTION LOST, 4: STUN SERVER ERROR, 10: P2P CHANNEL FAILED TO OPEN WITHOUT SRFLX, 11: P2P CHANNEL FAILED TO OPEN WITH SRFLX, 19: P2P CHANNEL OPEN BUT MESSAGE ERROR, 20: P2P CHANNEL OPEN AND EXCHANGE MESSAGES SUCCESSFUL</td>
+</tr>
+<tr>
+<td><em>lastDisconnect</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">timestamp of the last connection lost</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>chargingState</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">battery charging state <a href="https://developer.android.com/reference/android/os/BatteryManager">info</a></td>
+<td style="text-align:center">1: Unknwn, 2: Charging, 3: Discharging, 4: Not charging, 5: Full</td>
+</tr>
+<tr>
+<td><em>pluggedState</em></td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">battery plugged state <a href="https://developer.android.com/reference/android/os/BatteryManager">info</a></td>
+<td style="text-align:center">-1: Not pLugged or unknown, 0: Not plugged, 1: AC, 2: USB, 4 WIRELESS</td>
+</tr>
+<tr>
+<td><em>percentage</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">battery level <a href="https://developer.android.com/reference/android/os/BatteryManager#EXTRA_LEVEL">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>health</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">battery health <a href="https://developer.android.com/reference/android/os/BatteryManager">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>present</em></td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">present of battery - boolean</td>
+<td style="text-align:center">true if there is a battery otherwise false</td>
+</tr>
+<tr>
+<td><em>technology</em></td>
+<td style="text-align:center">4</td>
+<td style="text-align:center"><a href="https://developer.android.com/reference/android/os/BatteryManager#EXTRA_TECHNOLOGY">type</a> of battery of device</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>temperature</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">the battery <a href="https://developer.android.com/reference/android/os/BatteryManager#EXTRA_TEMPERATURE">temperature</a> during the measurement</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>voltage</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">battery voltage <a href="https://developer.android.com/reference/android/os/BatteryManager#EXTRA_VOLTAGE">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>turnOnTimeStamp</em></td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">UNIX timestamp of the last turn on</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>shutdownTimestamp</em></td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">UNIX <a href="https://developer.android.com/reference/android/content/Intent.html#ACTION_SHUTDOWN">timestamp</a> of the last shut down</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>uptime</em></td>
+<td style="text-align:center">10</td>
+<td style="text-align:center"><a href="https://developer.android.com/reference/android/os/SystemClock#elapsedRealtime()">Elapsed</a> time since last turn on</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>latitude</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">latitude <a href="https://developer.android.com/training/location/display-address">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>longitude</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">longitude <a href="https://developer.android.com/training/location/display-address">info</a></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>locationCaptureTimestamp</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp based on the device time</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>countryName</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">The name of the country where the data was recorded. It based on the IP address.</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>autonomousSystemOrganization</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">The name of the system organization whose belongs to the IP address.</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>continent</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">The name of the continent where the data was recorded. It based on the IP address.</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>platform</em></td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">The name of the device platform where the data was recorded</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PdeviceID</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">unique device P2P ID (hashed)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PpeerID</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">unique peer P2P ID (hashed)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PconnectionStart</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC connection start</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PchannelOpen</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC channel open</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PchannelClosed</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC channel closed</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PconnectionEnd</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">UNIX timestamp of local test webRTC connection end</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2PexitStatus</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">the P2P measurement result codes</td>
+<td style="text-align:center">-10: UNKNOWN, -3: DID NOT STARTED, -2: CONNECTION TIMED OUT, 0: NOT CONNECTED TO ANY NETWORK &lt;br&gt; 2: CONNECTION LOST, 3: PEER CONNECTION LOST, 4: STUN SERVER ERROR, 5: OFFER IS REJECTED &lt;br&gt; 10: P2P CHANNEL FAILED TO OPEN WITHOUT SRFLX, 11: P2P CHANNEL FAILED TO OPEN WITH SRFLX &lt;br&gt; 19: P2P CHANNEL OPEN BUT MESSAGE ERROR, 20: P2P CHANNEL OPEN AND EXCHANGE MESSAGES SUCCESSFUL</td>
+</tr>
+<tr>
+<td><em>P2PconnectionID</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">unique P2P connection ID</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td><em>P2Pinitiator</em></td>
+<td style="text-align:center">22</td>
+<td style="text-align:center">P2P initiator (boolean)</td>
+<td style="text-align:center">true if the device starts the connection</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="Vesionsreleases_110"></a>Vesions/releases</h2>
+<table class="table table-striped table-bordered">
+<thead>
+<tr>
+<th>Versions</th>
+<th style="text-align:center">Releases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>version 1.</td>
+<td style="text-align:center">2013.dec.20</td>
+</tr>
+<tr>
+<td>version 2.</td>
+<td style="text-align:center">2014.jan.6.</td>
+</tr>
+<tr>
+<td>version 3.</td>
+<td style="text-align:center">2014.jan.21.</td>
+</tr>
+<tr>
+<td>version 4.</td>
+<td style="text-align:center">2014.mar.14.</td>
+</tr>
+<tr>
+<td>version 5.</td>
+<td style="text-align:center">2014.mar.26.</td>
+</tr>
+<tr>
+<td>version 6.</td>
+<td style="text-align:center">2014.mar.28.</td>
+</tr>
+<tr>
+<td>version 7.</td>
+<td style="text-align:center">2014.mar.30.</td>
+</tr>
+<tr>
+<td>version 8.</td>
+<td style="text-align:center">2014.apr.10.</td>
+</tr>
+<tr>
+<td>version 9.</td>
+<td style="text-align:center">2014.apr.28.</td>
+</tr>
+<tr>
+<td>version 10.</td>
+<td style="text-align:center">2014.okt.3.</td>
+</tr>
+<tr>
+<td>version 11.</td>
+<td style="text-align:center">2014.okt.9.</td>
+</tr>
+<tr>
+<td>version 12.</td>
+<td style="text-align:center">2015.jan.19.</td>
+</tr>
+<tr>
+<td>version 13.</td>
+<td style="text-align:center">2015.marc.16.</td>
+</tr>
+<tr>
+<td>version 14.</td>
+<td style="text-align:center">2017.apr.25.</td>
+</tr>
+<tr>
+<td>version 15.</td>
+<td style="text-align:center">2018.apr.18.</td>
+</tr>
+<tr>
+<td>version 16.</td>
+<td style="text-align:center">2018.apr.21</td>
+</tr>
+<tr>
+<td>version 17.</td>
+<td style="text-align:center">2018.apr.23.</td>
+</tr>
+<tr>
+<td>version 18.</td>
+<td style="text-align:center">2018.may.12.</td>
+</tr>
+<tr>
+<td>version 19.</td>
+<td style="text-align:center">2018.okt.29.</td>
+</tr>
+<tr>
+<td>version 20.</td>
+<td style="text-align:center">2018.okt.29.</td>
+</tr>
+<tr>
+<td>version 21.</td>
+<td style="text-align:center">2018.okt.31.</td>
+</tr>
+<tr>
+<td>version 22.</td>
+<td style="text-align:center">2018.nov.26.</td>
+</tr>
+<tr>
+<td>version 23.</td>
+<td style="text-align:center">2018.dec.17.</td>
+</tr>
+<tr>
+<td>version 24.</td>
+<td style="text-align:center">2019.jan.22.</td>
+</tr>
+</tbody>
+</table>
+
+</body></html>

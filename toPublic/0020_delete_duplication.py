@@ -167,19 +167,22 @@ def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
         else :
           prevline = line
       outUser.append(prevline)
+      prevTempDate = ""
       if TO_PUBLIC == True :
         outUser.sort(key=denoteServerOrder)
-      prevTempDate = ""
-      file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+prevTempDate, "a+", encoding="utf-8")
+        file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+prevTempDate, "a+", encoding="utf-8")
+      else :
+        file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName, "a+", encoding="utf-8")
       for line in outUser :
-        if str(line[0]) != "1391385600000" and  str(line[0]) != "1409529600000" and str(line[0]) != "1412121600000":
-          serverTimestamp = int(line[0])/1000
-        else :
-          serverTimestamp = int(line[1])/1000
-        tempDate = str(datetime.datetime.fromtimestamp(serverTimestamp).strftime('%Y-%m'))
-        if tempDate != prevTempDate :
-          file.close()
-          file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+tempDate, "a+", encoding="utf-8")
+        if TO_PUBLIC == True:
+          if str(line[0]) != "1391385600000" and  str(line[0]) != "1409529600000" and str(line[0]) != "1412121600000":
+            serverTimestamp = int(line[0])/1000
+          else :
+            serverTimestamp = int(line[1])/1000
+          tempDate = str(datetime.datetime.fromtimestamp(serverTimestamp).strftime('%Y-%m'))
+          if tempDate != prevTempDate :
+            file.close()
+            file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+tempDate, "a+", encoding="utf-8")
         outP2P=[]
         if fileName in p2pM and str(line[3]) in p2pM[fileName]:
           deviceID = p2pM[fileName][line[3]]["androidID"]
@@ -202,7 +205,8 @@ def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
           for i in range(9) :
             outP2P.append("")
         file.write('' + toStringV2(line[:len(line)-1],outP2P) + '\n')
-        prevTempDate = tempDate
+        if TO_PUBLIC == True:
+          prevTempDate = tempDate
       file.close()
       numOfUser+=1
       numOfRecordAll+=len(outUser)
