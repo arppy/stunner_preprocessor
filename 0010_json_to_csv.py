@@ -3,6 +3,8 @@ import csv
 import time
 import re
 import sys
+import geoip2.database
+from geoip2.errors import AddressNotFoundError
 from fileinput import filename
 
 try:
@@ -56,7 +58,9 @@ BATTERY_UNPLUGGED_STATE = set(['0', '-1'])
 BATTERY_STATUS_CHARGING = set(['2', '5'])
 BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 
-INFILE_PATH = 'res/res_v1/'
+INFILE_PATH = 'res/res_v1b/'
+GEOLITE_CITY_READER = geoip2.database.Reader('../res/geolite/GeoLite2-City.mmdb')
+GEOLITE_ASN_READER = geoip2.database.Reader('../res/geolite/GeoLite2-ASN.mmdb')
 OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
 VERSION_TWO_SINCE = 20
@@ -161,96 +165,279 @@ def toStringV2(record):
     tostring += addNAToString(1)
   if "timeStamp" in record :
     tostring += ';' + replaceNullNA(str(record["timeStamp"]))  # $5
+  elif "date" in record :
+    tostring += ';' + replaceNullNA(str(record["date"]))  # $5
   else:
     tostring += addNAToString(1)
   maxTimestamp(record["timeStamp"])
   if "timeZoneUTCOffset" in record :
     tostring += ';' + str(record["timeZoneUTCOffset"])  # $6
+  elif "timeZone" in record :
+    tostring += ';' + str(record["timeZone"])  # $6
   else:
     tostring += addNAToString(1)
-  tostring += ';' + str(record["triggerCode"])  # $7
-  tostring += ';' + str(record["androidVersion"])  # $8
-  tostring += ';' + str(record["appVersion"])  # $9
-  tostring += ';' + str(record["connectionMode"])  # $10
-  if "networkInfo" in record :
+  if "triggerCode" in record :
+    tostring += ';' + str(record["triggerCode"])  # $7
+  else:
+    tostring += addNAToString(1)
+  if "androidVersion" in record:
+    tostring += ';' + str(record["androidVersion"])  # $8
+  else:
+    tostring += addNAToString(1)
+  if "appVersion" in record:
+    tostring += ';' + str(record["appVersion"])  # $9
+  else:
+    tostring += addNAToString(1)
+  if "connectionMode" in record:
+    tostring += ';' + str(record["connectionMode"])  # $10
+  else:
+    tostring += addNAToString(1)
+  if "networkInfo" in record:
     tostring += ';' + str(record["networkInfo"])  # $11
+  else:
+    tostring += addNAToString(1)
+  if "localIP" in record and record["localIP"] is not None:
+    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["localIP"])))  # $12
   else :
     tostring += addNAToString(1)
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["localIP"])))  # $12
   if "wifiDTO" in record and record["wifiDTO"] is not None:
-    if "macAddress" in record["wifiDTO"]:
+    if "macAddress" in record["wifiDTO"] and record["wifiDTO"]["macAddress"] is not None :
       tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["macAddress"]))))  # $13
     else :
       tostring += addNAToString(1)
-    if "ssid" in record["wifiDTO"]:
+    if "ssid" in record["wifiDTO"] and record["wifiDTO"]["ssid"] is not None :
       tostring += ';' + replaceNullNA(replaceProblematicChars(removeLastCharsFromString(str(record["wifiDTO"]["ssid"]))))  # $14
     else :
       tostring += addNAToString(1)
-    if "state" in record["wifiDTO"] :
+    if "state" in record["wifiDTO"] and record["wifiDTO"]["state"] is not None :
       tostring += ';' + str(record["wifiDTO"]["state"])  # $15
     else :
       tostring += addNAToString(1)
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiDTO"]["bandwidth"])))  # $16
-    tostring += ';' + str(record["wifiDTO"]["rssi"])  # $17
-  else :
-    tostring += addNAToString(6)
-  if "mobileDTO" in record and record["mobileDTO"] is not None:
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["carrier"])))  # $18
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkType"])))  # $19
-    if "networkCountryIso" in record["mobileDTO"]:
-      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkCountryIso"])))  # $20
-    else :
+    if "bandwidth" in record["wifiDTO"] and record["wifiDTO"]["bandwidth"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiDTO"]["bandwidth"])))  # $16
+    else:
       tostring += addNAToString(1)
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["simCountryIso"])))  # $21
-    tostring += ';' + str(record["mobileDTO"]["roaming"])  # $22
-    if "phoneType" in record["mobileDTO"]:
+    if "rssi" in record["wifiDTO"] and record["wifiDTO"]["rssi"] is not None:
+      tostring += ';' + str(record["wifiDTO"]["rssi"])  # $17
+    else:
+      tostring += addNAToString(1)
+  elif "wifiInfo" in record and record["wifiInfo"] is not None:
+    tostring += addNAToString(1)  # 13
+    if "ssid" in record["wifiInfo"] and record["wifiInfo"]["ssid"] is not None:
+      tostring += ';' + replaceNullNA(
+        replaceProblematicChars(removeLastCharsFromString(str(record["wifiInfo"]["ssid"]))))  # $14
+    else:
+      tostring += addNAToString(1)
+    tostring += addNAToString(1)  # 15
+    if "bandwidth" in record["wifiInfo"] and record["wifiInfo"]["bandwidth"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["wifiInfo"]["bandwidth"])))  # $16
+    else:
+      tostring += addNAToString(1)
+    tostring += addNAToString(1)  # 17
+  else:
+    tostring += addNAToString(5)
+  if "mobileDTO" in record and record["mobileDTO"] is not None:
+    if "carrier" in record["mobileDTO"] and record["mobileDTO"]["carrier"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["carrier"])))  # $18
+    else:
+      tostring += addNAToString(1)
+    if "networkType" in record["mobileDTO"] and record["mobileDTO"]["networkType"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkType"])))  # $19
+    else:
+      tostring += addNAToString(1)
+    if "networkCountryIso" in record["mobileDTO"] and record["mobileDTO"]["networkCountryIso"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["networkCountryIso"])))  # $20
+    else:
+      tostring += addNAToString(1)
+    if "simCountryIso" in record["mobileDTO"] and record["mobileDTO"]["simCountryIso"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileDTO"]["simCountryIso"])))  # $21
+    else:
+      tostring += addNAToString(1)
+    if "roaming" in record["mobileDTO"] and record["mobileDTO"]["roaming"] is not None:
+      tostring += ';' + str(record["mobileDTO"]["roaming"])  # $22
+    else:
+      tostring += addNAToString(1)
+    if "phoneType" in record["mobileDTO"] and record["mobileDTO"]["phoneType"] is not None:
       tostring += ';' + str(record["mobileDTO"]["phoneType"])  # $23
     else:
       tostring += addNAToString(1)
-    if "airplane" in record["mobileDTO"]:
+    if "airplane" in record["mobileDTO"] and record["mobileDTO"]["airplane"] is not None:
       tostring += ';' + str(record["mobileDTO"]["airplane"])  # $24
     else:
       tostring += addNAToString(1)
+  elif "mobileNetInfo" in record and record["mobileNetInfo"] is not None:
+    if "carrier" in record["mobileNetInfo"] and record["mobileNetInfo"]["carrier"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileNetInfo"]["carrier"])))  # $18
+    else:
+      tostring += addNAToString(1)
+    if "netType" in record["mobileNetInfo"] and record["mobileNetInfo"]["netType"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["mobileNetInfo"]["netType"])))  # $19
+    else:
+      tostring += addNAToString(1)
+    tostring += addNAToString(2) # 20 21
+    if "isRoaming" in record["mobileNetInfo"] and record["mobileNetInfo"]["isRoaming"] is not None:
+      tostring += ';' + str(record["mobileNetInfo"]["isRoaming"])  # $22
+    else :
+      tostring += addNAToString(1)
+    tostring += addNAToString(2)  # 23 24
   else :
     tostring += addNAToString(7)
-  if "natResultsDTO" in record :
-    tostring += ';' + str(record["natResultsDTO"]["discoveryResult"])  # $25
-    tostring += ';' + str(record["natResultsDTO"]["exitStatus"])  # $26
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["publicIP"])))  # $27
-    tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["STUNserver"])))  # $28
-    tostring += ';' + replaceNullNA(str(record["natResultsDTO"]["lastDiscovery"]))  # $29
+  ipstring = "NA"
+  if "natResultsDTO" in record and record["natResultsDTO"] is not None:
+    if "discoveryResult" in record["natResultsDTO"] and record["natResultsDTO"]["discoveryResult"] is not None :
+      discoveryResult = record["natResultsDTO"]["discoveryResult"]
+    else :
+      discoveryResult = record["natResultsDTO"]["discoveryResultCode"]
+    if "exitStatus" in record["natResultsDTO"] and record["natResultsDTO"]["exitStatus"] is not None :
+      exitStatus = record["natResultsDTO"]["exitStatus"];
+      discoveryResult = correctDiscoveryResult(discoveryResult, exitStatus)
+    elif discoveryResult == -1 :
+      exitStatus = 1
+    elif discoveryResult == -3:
+      exitStatus = -1
+    else :
+      exitStatus = 0
+    tostring += ';' + str(discoveryResult)  # $25
+    tostring += ';' + str(exitStatus)  # $26
+    if "publicIP" in record["natResultsDTO"] and record["natResultsDTO"]["publicIP"] is not None:
+      ipstring = replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["publicIP"])))
+      tostring += ';' + ipstring  # $27
+    else:
+      tostring += addNAToString(1)
+    if "STUNserver" in record["natResultsDTO"] and record["natResultsDTO"]["STUNserver"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["natResultsDTO"]["STUNserver"])))  # $28
+    else:
+      tostring += addNAToString(1)
+    if "lastDiscovery" in record["natResultsDTO"] and record["natResultsDTO"]["lastDiscovery"] is not None:
+      tostring += ';' + replaceNullNA(str(record["natResultsDTO"]["lastDiscovery"]))  # $29
+    else:
+      tostring += addNAToString(1)
   else :
-    tostring += addNAToString(5)
-  if "webRTCResultsDTO" in record :
-    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionStart"]))  # $30
-    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionEnd"]))  # $31
-    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelOpen"]))  # $32
-    tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelClosed"]))  # $33
-    tostring += ';' + str(record["webRTCResultsDTO"]["exitStatus"])  # $34
+    if "discoveryResult" in record:
+      discoveryResult = record["discoveryResult"]
+    elif "discoveryResultCode" in record:
+      discoveryResult = record["discoveryResultCode"]
+    elif "resultCode" in record:
+      discoveryResult = record["resultCode"]
+    else:
+      discoveryResult = -3
+    if discoveryResult == -1:
+      exitStatus = 1
+    elif discoveryResult == -3:
+      exitStatus = -1
+    else:
+      exitStatus = 0
+    tostring += ';' + str(discoveryResult)  # $25
+    tostring += ';' + str(exitStatus)  # $26
+    if "publicIP" in record and record["publicIP"] is not None:
+      ipstring = replaceNullNA(replaceProblematicChars(str(record["publicIP"])))
+      tostring += ';' + ipstring  # $27
+    else :
+      tostring += addNAToString(1)
+    tostring += addNAToString(2) # 28 # 29
+  if "webRTCResultsDTO" in record and record["webRTCResultsDTO"] is not None:
+    try:
+      tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionStart"]))  # $30
+      tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["connectionEnd"]))  # $31
+      tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelOpen"]))  # $32
+      tostring += ';' + replaceNullNA(str(record["webRTCResultsDTO"]["channelClosed"]))  # $33
+      tostring += ';' + str(record["webRTCResultsDTO"]["exitStatus"])  # $34
+    except:
+      tostring += addNAToString(5)
   else :
     tostring += addNAToString(5)
   if "lastDisconnect" in record:
     tostring += ';' + replaceNullNA(str(record["lastDisconnect"]))  # $35
   else :
     tostring += addNAToString(1)
-  tostring += ';' + str(record["batteryDTO"]["chargingState"])  # $36
-  tostring += ';' + str(record["batteryDTO"]["pluggedState"])  # $37
-  tostring += ';' + str(record["batteryDTO"]["percentage"])  # $38
-  tostring += ';' + str(record["batteryDTO"]["health"])  # $39
-  tostring += ';' + str(record["batteryDTO"]["present"])  # $40
-  tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["batteryDTO"]["technology"])))  # $41
-  tostring += ';' + str(record["batteryDTO"]["temperature"])  # $42
-  tostring += ';' + str(record["batteryDTO"]["voltage"])  # $43
-  tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["turnOnTimestamp"]))  # $44
-  tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["shutDownTimestamp"]))  # $45
-  tostring += ';' + str(record["uptimeInfoDTO"]["uptime"])  # $46
+  if "batteryDTO" in record and record["batteryDTO"] is not None:
+    if "chargingState" in record["batteryDTO"] and record["batteryDTO"]["chargingState"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["chargingState"])  # $36
+    else:
+      tostring += addNAToString(1)
+    if "pluggedState" in record["batteryDTO"] and record["batteryDTO"]["pluggedState"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["pluggedState"])  # $37
+    else:
+      tostring += addNAToString(1)
+    if "percentage" in record["batteryDTO"] and record["batteryDTO"]["percentage"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["percentage"])  # $38
+    else:
+      tostring += addNAToString(1)
+    if "health" in record["batteryDTO"] and record["batteryDTO"]["health"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["health"])  # $39
+    else:
+      tostring += addNAToString(1)
+    if "present" in record["batteryDTO"] and record["batteryDTO"]["present"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["present"])  # $40
+    else:
+      tostring += addNAToString(1)
+    if "technology" in record["batteryDTO"] and record["batteryDTO"]["technology"] is not None:
+      tostring += ';' + replaceNullNA(replaceProblematicChars(str(record["batteryDTO"]["technology"])))  # $41
+    else:
+      tostring += addNAToString(1)
+    if "temperature" in record["batteryDTO"] and record["batteryDTO"]["temperature"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["temperature"])  # $42
+    else:
+      tostring += addNAToString(1)
+    if "voltage" in record["batteryDTO"] and record["batteryDTO"]["voltage"] is not None:
+      tostring += ';' + str(record["batteryDTO"]["voltage"])  # $43
+    else:
+      tostring += addNAToString(1)
+  elif "batteryInfo" in record and record["batteryInfo"] is not None:
+    if "charging" in record["batteryInfo"] and record["batteryInfo"]["charging"] is not None:
+      if str(record["batteryDTO"]["charging"]) == "true" :
+        tostring += ';' + str(2)  # $36
+        tostring += ';' + str(1)  # $37
+      else :
+        tostring += ';' + str(4)  # $36
+        tostring += ';' + str(0)  # $37
+    else:
+      tostring += addNAToString(2)
+    if "batteryLevel" in record["batteryInfo"] and record["batteryInfo"]["batteryLevel"] is not None:
+      tostring += ';' + str(record["batteryInfo"]["batteryLevel"])  # $38
+    else:
+      tostring += addNAToString(1)
+    tostring += addNAToString(5) # $39 $40 $41 $42 $43
+  else :
+    tostring += addNAToString(8)
+  if "uptimeInfoDTO" in record and record["uptimeInfoDTO"] is not None:
+    if "turnOnTimestamp" in record["uptimeInfoDTO"] and record["uptimeInfoDTO"]["turnOnTimestamp"] is not None:
+      tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["turnOnTimestamp"]))  # $44
+    else:
+      tostring += addNAToString(1)
+    if "shutDownTimestamp" in record["uptimeInfoDTO"] and record["uptimeInfoDTO"]["shutDownTimestamp"] is not None:
+      tostring += ';' + replaceNullNA(str(record["uptimeInfoDTO"]["shutDownTimestamp"]))  # $45
+    else:
+      tostring += addNAToString(1)
+    if "uptime" in record["uptimeInfoDTO"] and record["uptimeInfoDTO"]["uptime"] is not None:
+      tostring += ';' + str(record["uptimeInfoDTO"]["uptime"])  # $46
+    else:
+      tostring += addNAToString(1)
+  else:
+    tostring += addNAToString(3)
   tostring += ';' + replaceNullNA(str(record["latitude"]))  # $47
   tostring += ';' + replaceNullNA(str(record["longitude"]))  # $48
-  if "locationCaptureTimestamp" in record :
+  if "locationCaptureTimestamp" in record:
     tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
-  else :
+  else:
     tostring += addNAToString(1)
-  tostring += ';' + str(record["sourceRow"])  # $50
+  try:
+    if ipstring and ipstring is not None and ipstring != 'NA':
+      response = GEOLITE_CITY_READER.city(ipstring)
+      response2 = GEOLITE_ASN_READER.asn(ipstring)
+      tostring += ';' + replaceNullNA(str(response.country.name))  # $50
+      tostring += ';' + replaceNullNA(str(response2.autonomous_system_organization))  # $51
+      tostring += ';' + replaceNullNA(str(response.continent.name))  # $52
+    else:
+      tostring += addNAToString(3)
+  except AddressNotFoundError:
+    tostring += addNAToString(3)
+  except ValueError:
+    tostring += addNAToString(3)
+  except TypeError:
+    tostring += addNAToString(3)
+  tostring += ';' + replaceNullNA(str(record["platform"]))  # $53
+  tostring += ';' + replaceNullNA(str(record["sourceRow"]))  # $54
   return tostring
 
 def toStringV1(record):
@@ -263,8 +450,10 @@ def toStringV1(record):
   tostring += ';' + str(record["serverSideUploadDate"])  # $7
   tostring += ';' + str(record["deviceHash"])  # $8
   tostring += ';' + str(record["platform"])  # $9
+  ipstring = "NA"
   if record["publicIP"] is not None:
-    tostring += ';' + replaceProblematicChars(record["publicIP"])  # $10
+    ipstring = replaceNullNA(replaceProblematicChars(str(record["publicIP"])))
+    tostring += ';' + ipstring  # $10
   else :
     tostring += addNAToString(1)
   if record["localIP"] is not None:
@@ -376,6 +565,16 @@ def replaceProblematicCharsInJSON(inputString) :
   inputString = inputString.replace('"simCountryIso":""','"simCountryIso":"NA"')
   inputString = inputString.replace('"networkCountryIso":""','"networkCountryIso":"NA"')
   inputString = inputString.replace('""', '"')
+  inputString = inputString.replace('}NEWNEW','}')
+  inputString = inputString.replace('"carrier":""TaiwanMobile""', '"carrier":"TaiwanMobile"')
+  inputString = inputString.replace('"carrier":""O2 - UK""', '"carrier":"O2 - UK"')
+  inputString = inputString.replace('"carrier":""AT&T""', '"carrier":"AT&T"')
+  inputString = inputString.replace('"carrier":""OrangeF""', '"carrier":"OrangeF"')
+  inputString = inputString.replace('"carrier":""BIMcell""', '"carrier":"BIMcell"')
+  inputString = inputString.replace('"carrier":""', '"carrier":"NA"')
+  inputString = inputString.replace('"technology":""','"technology":"NA"')
+  inputString = inputString.replace('"{','{')
+  inputString = inputString.replace('}"','}')
   return inputString
 
 def replaceProblematicChars(inputString):
@@ -411,6 +610,20 @@ def replaceNullNA(inputString):
     return ''
   else: 
     return inputString
+
+def addNAToString(times):
+  nas = ''
+  for i in range(0, times) :
+    nas += ';'
+  return nas
+
+def correctDiscoveryResult(nat,exitStatus) :
+  if nat == -2 and exitStatus ==  -1 :
+    return -3
+  if nat == -2  and exitStatus > 0 :
+    return -1
+  return nat
+
 
 max_timestamp = 0;
 allRecord = 0
