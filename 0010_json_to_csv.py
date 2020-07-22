@@ -6,6 +6,7 @@ import sys
 import geoip2.database
 from geoip2.errors import AddressNotFoundError
 from fileinput import filename
+import multiprocessing
 
 try:
     import simplejson as json
@@ -59,19 +60,16 @@ BATTERY_STATUS_CHARGING = set(['2', '5'])
 BATTERY_STATUS_NOT_CHARGING = set(['1', '3', '4',])
 
 INFILE_PATH = 'res/res_v1b/'
-GEOLITE_CITY_READER = geoip2.database.Reader('../res/geolite/GeoLite2-City.mmdb')
-GEOLITE_ASN_READER = geoip2.database.Reader('../res/geolite/GeoLite2-ASN.mmdb')
+GEOLITE_CITY_READER = geoip2.database.Reader('res/geolite/GeoLite2-City.mmdb')
+GEOLITE_ASN_READER = geoip2.database.Reader('res/geolite/GeoLite2-ASN.mmdb')
 OUTFILE_PATH = 'out/'
 LAST_FAIL_APP_VERSION = 13
 VERSION_TWO_SINCE = 20
 STUNNER_APP_ID = 'hu.uszeged.inf.wlab.stunner'
-
-
-def maxTimestamp(ts):
-  global max_timestamp
-  if ts > max_timestamp :
-    max_timestamp = ts
-
+if len(sys.argv) > 1 and sys.argv[1] and sys.argv[1] is not None and str.isnumeric(sys.argv[1]):
+  NUMBER_OF_CORES = int(sys.argv[1])
+else :
+  NUMBER_OF_CORES = 1
 
 def isEmptyFields(record) :
   global allFiltered, errorPerUser
@@ -169,7 +167,6 @@ def toStringV2(record):
     tostring += ';' + replaceNullNA(str(record["date"]))  # $5
   else:
     tostring += addNAToString(1)
-  maxTimestamp(record["timeStamp"])
   if "timeZoneUTCOffset" in record :
     tostring += ';' + str(record["timeZoneUTCOffset"])  # $6
   elif "timeZone" in record :
@@ -441,8 +438,8 @@ def toStringV2(record):
   return tostring
 
 def toStringV1(record):
-  tostring = '' + str(rowPerUser[record["deviceHash"]]) # $1
-  tostring += ';' + str(differentServerTimePerUser[record["deviceHash"]])  # $2
+  tostring = '' + str(record["fileCreationDate"])  # $1
+  tostring += ';' + replaceNullNA(str(record["serverSideUploadDate"]))  # $2
   tostring += ';' + str(record["fileCreationDate"])  # $3
   tostring += ';' + str(record["previousValidUploadDate"])  # $4
   tostring += ';' + str(record["sourceFile"])  # $5
@@ -462,7 +459,6 @@ def toStringV1(record):
     tostring += addNAToString(1)
   if "timeStamp" in record :
     tostring += ';' + str(record["timeStamp"])  # $12
-    maxTimestamp(record["timeStamp"])
   else :
     tostring += addNAToString(1)
   tostring += ';' + str(record["latitude"])  # $13
@@ -624,141 +620,167 @@ def correctDiscoveryResult(nat,exitStatus) :
     return -1
   return nat
 
-
-max_timestamp = 0;
-allRecord = 0
-allFiltered = 0
-counter = 0
-differentServerTimePerUser = defaultdict(dict);
-rowPerUser = defaultdict(dict);
-previousValidUploadDate = defaultdict(dict);
-platform = STUNNER_APP_ID
-
-print("JSON TO CSV START")
-# MAIN
-lastTime = time.time()
-lastTime = whatTheTime(lastTime)
-# FILE_READING
-path = INFILE_PATH
-files = os.listdir(path)
-files.sort()
-for fileName in files:
-  counterPerFile = 0
-  baseNameString = os.path.basename(fileName).split(".")
-  try :
-    fileCreationDate = int(baseNameString[0]) * 60 * 60 * 1000
-  except :
-    fileCreationDate = 0
-  try:
-    with open('' + path + fileName) as csvfile:
-      stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
-      i = 0;
-      for line in stunnerReader:
-        originLen = len(line)
-        originLine = line
-        line = "|-|".join(line)
-        line = replaceProblematicChars(line)
-        line = line.split("|-|")
-        #if(originLen != len(line)) :
-          #print(originLine)
-          #print(line)
-        for record in line:
-          #record = replaceProblematicChars(record)  
-          if i == 0 :
-            try:
-              serverSideUploadDate = int(record)                
-            except :
-              serverSideUploadDate = 0
-          if i == 1 :
-            userName = str(record)
-            if not previousValidUploadDate[userName]:
-              previousValidUploadDate[userName] = 0
-            if not differentServerTimePerUser[userName] :
-              differentServerTimePerUser[userName] = 0
-            if not rowPerUser[userName] :
-              rowPerUser[userName] = 0
-          if i >= 2 :
-            if re.match('^hu', record) is not None:
-              platform = str(record)
-            else :
-              #record = record.decode('utf-8', errors='ignore').encode('utf-8', errors='ignore')
-              #record = record.decode('ascii',errors='ignore')
-              #record = record.decode('iso-8859-1',errors='ignore')
+def readAndPrint(fileList,outSufix):
+  differentServerTimePerUser = defaultdict(dict);
+  previousValidUploadDate = defaultdict(dict);
+  platform = STUNNER_APP_ID
+  allRecord = 0
+  allFiltered = 0
+  counter = 0
+  lastTime = time.time()
+  lastTime = whatTheTime(lastTime)
+  for fileName in fileList:
+    counterPerFile = 0
+    baseNameString = os.path.basename(fileName).split(".")
+    try:
+      fileCreationDate = int(baseNameString[0]) * 60 * 60 * 1000
+    except:
+      fileCreationDate = 0
+    try:
+      with open('' + INFILE_PATH + fileName) as csvfile:
+        stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        i = 0;
+        for line in stunnerReader:
+          #originLen = len(line)
+          #originLine = line
+          line = "|-|".join(line)
+          line = replaceProblematicChars(line)
+          line = line.split("|-|")
+          # if(originLen != len(line)) :
+          # print(originLine)
+          # print(line)
+          for record in line:
+            # record = replaceProblematicChars(record)
+            if i == 0:
               try:
-                record = json.loads(record, strict=False)
-                if not type(record) == type({}) :
-                  raise ValueError
-              except ValueError:
-                record = replaceProblematicCharsInJSON(record)
+                serverSideUploadDate = int(record)
+              except:
+                serverSideUploadDate = 0
+            if i == 1:
+              userName = str(record)
+              if not previousValidUploadDate[userName]:
+                previousValidUploadDate[userName] = 0
+              if not differentServerTimePerUser[userName]:
+                differentServerTimePerUser[userName] = 0
+            if i >= 2:
+              if re.match('^hu', record) is not None:
+                platform = str(record)
+              else:
+                # record = record.decode('utf-8', errors='ignore').encode('utf-8', errors='ignore')
+                # record = record.decode('ascii',errors='ignore')
+                # record = record.decode('iso-8859-1',errors='ignore')
                 try:
                   record = json.loads(record, strict=False)
                   if not type(record) == type({}):
                     raise ValueError
                 except ValueError:
-                  if i >= 4:
-                    allFiltered += 1
-                    print('Not a JSON! ', str(fileName), str(appVersion), str(userName), str(record), str(line))
-                  record = {}
-              if record:
-                allRecord += 1
-                record = determineUnkownValue(record)
-                record["sourceFile"] = fileName
-                record["sourceRow"] = counterPerFile
-                record["fileCreationDate"] = fileCreationDate
-                record["serverSideUploadDate"] = serverSideUploadDate
-                record["previousValidUploadDate"] = previousValidUploadDate[userName]
-                record["deviceHash"] = userName
-                record["platform"] = platform
-                try:
-                  if(int(record["serverSideUploadDate"]) == 0 ) :
-                    difInServerAndAndroidTime = 0
-                  else :
-                    difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
-                  if(int(record["fileCreationDate"]) == 0 ) :
-                    difInFileAndAndroidTime = 0
-                  else :
-                    difInFileAndAndroidTime =  int(record["timeStamp"]) - int(record["fileCreationDate"])
+                  record = replaceProblematicCharsInJSON(record)
                   try:
-                    appVersion = int(record["appVersion"]);
-                  except:
-                    appVersion = 1
+                    record = json.loads(record, strict=False)
+                    if not type(record) == type({}):
+                      raise ValueError
+                  except ValueError:
+                    if i >= 4:
+                      allFiltered += 1
+                      print('Not a JSON! ', str(fileName), str(appVersion), str(userName), str(record), str(line))
+                    record = {}
+                if record:
+                  allRecord += 1
+                  record = determineUnkownValue(record)
+                  record["sourceFile"] = fileName
+                  record["sourceRow"] = counterPerFile
+                  record["fileCreationDate"] = fileCreationDate
+                  record["serverSideUploadDate"] = serverSideUploadDate
+                  record["previousValidUploadDate"] = previousValidUploadDate[userName]
+                  record["deviceHash"] = userName
+                  record["platform"] = platform
                   try:
-                    triggerCode = int(record["triggerCode"])
-                  except:
-                    triggerCode = -1
-                  if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
-                     difInFileAndAndroidTime <= MAX_DIF_IN_ANDROID_AND_FILE_TIME and \
-                    versionReleasDate[appVersion] <= int(record["timeStamp"]) :
-                    rowPerUser[userName] +=1
-                    if previousValidUploadDate[userName] != serverSideUploadDate :
-                      differentServerTimePerUser[userName] += 1
-                      previousValidUploadDate[userName] = serverSideUploadDate
-                      record["previousValidUploadDate"] = previousValidUploadDate[userName]
-                    if appVersion >= VERSION_TWO_SINCE :
-                      outstr = toStringV2(record)
-                    else :
-                      outstr = toStringV1(record)
-                    file = open('' + OUTFILE_PATH + userName , "a+", encoding="utf-8")
-                    file.write('' + outstr + '\n')
-                    file.close()
-                    # print(previousValidUploadDate[userName], serverSideUploadDate)
-                  else :
+                    if (int(record["serverSideUploadDate"]) == 0):
+                      difInServerAndAndroidTime = 0
+                    else:
+                      difInServerAndAndroidTime = int(record["serverSideUploadDate"]) - int(record["timeStamp"])
+                    if (int(record["fileCreationDate"]) == 0):
+                      difInFileAndAndroidTime = 0
+                    else:
+                      difInFileAndAndroidTime = int(record["timeStamp"]) - int(record["fileCreationDate"])
+                    try:
+                      appVersion = int(record["appVersion"]);
+                    except:
+                      appVersion = 1
+                    try:
+                      triggerCode = int(record["triggerCode"])
+                    except:
+                      triggerCode = -1
+                    if difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME and \
+                        difInFileAndAndroidTime <= MAX_DIF_IN_ANDROID_AND_FILE_TIME and \
+                        versionReleasDate[appVersion] <= int(record["timeStamp"]):
+                      if previousValidUploadDate[userName] != serverSideUploadDate:
+                        differentServerTimePerUser[userName] += 1
+                        previousValidUploadDate[userName] = serverSideUploadDate
+                        record["previousValidUploadDate"] = previousValidUploadDate[userName]
+                      if appVersion >= VERSION_TWO_SINCE:
+                        outstr = toStringV2(record)
+                      else:
+                        outstr = toStringV1(record)
+                      file = open('' + OUTFILE_PATH + str(outSufix) + '/' +  userName, "a+", encoding="utf-8")
+                      file.write('' + outstr + '\n')
+                      file.close()
+                      # print(previousValidUploadDate[userName], serverSideUploadDate)
+                    else:
+                      allFiltered += 1
+                      # print('Too OLD version of JSON!',fileName,str(appVersion),record["timeStamp"],\
+                      #      str(difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME),str(difInServerAndAndroidTime),str(record["serverSideUploadDate"]))
+                  except Exception as e:
                     allFiltered += 1
-                    #print('Too OLD version of JSON!',fileName,str(appVersion),record["timeStamp"],\
-                    #      str(difInServerAndAndroidTime >= MIN_DIF_IN_ANDROID_AND_SERVER_TIME),str(difInServerAndAndroidTime),str(record["serverSideUploadDate"]))
-                except Exception as e :
-                  allFiltered += 1
-                  print('Missing Record! ',str(fileName), str(userName), str(appVersion), str(line),type(e), e, e.args )
-          i += 1;
-        if i >= 3 :
-          i = 0
-          counter += 1
-          counterPerFile += 1
-          if counter % 100000 == 0:
-            print(counter)
-            sys.stdout.flush()
-  except IsADirectoryError :
+                    print('Missing Record! ', str(fileName), str(userName), str(appVersion), str(line), type(e), e,
+                          e.args)
+            i += 1;
+          if i >= 3:
+            i = 0
+            counter += 1
+            counterPerFile += 1
+            if counter % 100000 == 0:
+              print(counter)
+              sys.stdout.flush()
+    except IsADirectoryError:
       print("Warning: " + str(fileName) + " is a directory")
-lastTime = whatTheTime(lastTime)
-print("JSON TO CSV END. ALL RECORD: "+str(allRecord)+" ALL FILTERED: "+str(allFiltered))
+  lastTime = whatTheTime(lastTime)
+  print("JSON TO CSV END. ALL RECORD: " + str(allRecord) + " ALL FILTERED: " + str(allFiltered))
 
+
+
+print("JSON TO CSV START")
+# MAIN
+fileList = {}
+for core in range(NUMBER_OF_CORES) :
+  fileList[core] = []
+# FILE_READING
+files = os.listdir(INFILE_PATH)
+files.sort()
+THREAD_FILE_NUMBER_BLOCK_SIZE = int(len(files)/NUMBER_OF_CORES)
+fi=0
+core = 0
+print(str(os.path.getsize(INFILE_PATH)),os.stat(INFILE_PATH))
+sumOfSize = 0
+for fileName in files:
+  sumOfSize+=os.path.getsize(INFILE_PATH+'/'+fileName)
+THREAD_FILE_SIZE_BLOCK_SIZE = int(sumOfSize/NUMBER_OF_CORES)
+#print(str(0),sumOfSize,str(THREAD_FILE_SIZE_BLOCK_SIZE),str(NUMBER_OF_CORES*THREAD_FILE_SIZE_BLOCK_SIZE))
+for fileName in files:
+  #searchObj = re.search(r'^[0-9]{6}_2014[0-9]{4}-[0-9]{4}\.csv$', fileName)
+  fileList[core].append(fileName)
+  fi+=os.path.getsize(INFILE_PATH+'/'+fileName)
+  if fi / THREAD_FILE_SIZE_BLOCK_SIZE > 1 and core != NUMBER_OF_CORES-1:
+    sumOfSize -= fi
+    core += 1
+    THREAD_FILE_SIZE_BLOCK_SIZE = int(sumOfSize / (NUMBER_OF_CORES-core))
+    #print(fi, sumOfSize, str(THREAD_FILE_SIZE_BLOCK_SIZE), str(NUMBER_OF_CORES-core))
+    fi = 0
+#print(fi, sumOfSize, str(THREAD_FILE_SIZE_BLOCK_SIZE), str(NUMBER_OF_CORES-core))
+processes = []
+for core in range(NUMBER_OF_CORES) :
+  processes.append(multiprocessing.Process(target=readAndPrint, args=(fileList[core], core)))
+  processes[-1].start()  # start the thread we just created
+  print(len(fileList[core]))
+for t in processes:
+  t.join()

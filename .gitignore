@@ -110,6 +110,7 @@ venv.bak/
 #idea
 .idea/
 
+nohup.out
 
 #My files that need to ignore
 toPublic/0029_version_field_stat.out

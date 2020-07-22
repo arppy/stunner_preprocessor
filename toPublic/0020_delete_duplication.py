@@ -116,7 +116,7 @@ def isNatAndWebRtcdiscovery(line):
     return True
   return False
 
-def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
+def sortAndDuplicateFiltering(fileList, p2pM):
   lastTime = time.time()
   lastTime = whatTheTime(lastTime)
   # FILE_READING
@@ -170,9 +170,9 @@ def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
       prevTempDate = ""
       if TO_PUBLIC == True :
         outUser.sort(key=denoteServerOrder)
-        file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+prevTempDate, "a+", encoding="utf-8")
+        file = open('' + OUTFILE_PATH  + fileName+'.'+prevTempDate, "a+", encoding="utf-8")
       else :
-        file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName, "a+", encoding="utf-8")
+        file = open('' + OUTFILE_PATH  + fileName, "a+", encoding="utf-8")
       for line in outUser :
         if TO_PUBLIC == True:
           if str(line[0]) != "1391385600000" and  str(line[0]) != "1409529600000" and str(line[0]) != "1412121600000":
@@ -182,7 +182,7 @@ def sortAndDuplicateFiltering(fileList, outSufix, p2pM):
           tempDate = str(datetime.datetime.fromtimestamp(serverTimestamp).strftime('%Y-%m'))
           if tempDate != prevTempDate :
             file.close()
-            file = open('' + OUTFILE_PATH + str(outSufix) + '/' + fileName+'.'+tempDate, "a+", encoding="utf-8")
+            file = open('' + OUTFILE_PATH + fileName+'.'+tempDate, "a+", encoding="utf-8")
         outP2P=[]
         if fileName in p2pM and str(line[3]) in p2pM[fileName]:
           deviceID = p2pM[fileName][line[3]]["androidID"]
@@ -326,7 +326,7 @@ for fileName in files:
 #print(fi, sumOfSize, str(THREAD_FILE_SIZE_BLOCK_SIZE), str(NUMBER_OF_CORES-core))
 processes = []
 for core in range(NUMBER_OF_CORES) :
-  processes.append(multiprocessing.Process(target=sortAndDuplicateFiltering, args=(fileList[core], core, p2pM)))
+  processes.append(multiprocessing.Process(target=sortAndDuplicateFiltering, args=(fileList[core], p2pM)))
   processes[-1].start()  # start the thread we just created
   print(len(fileList[core]))
 for t in processes:

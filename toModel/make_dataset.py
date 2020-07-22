@@ -1065,9 +1065,9 @@ if haveToCreateLookupFiles == True :
       print("0", mobnetDictPozDict[type_mobnet], type_mobnet, sep=';', file=fileMobileNetTypeDict)
   for roaming in finalRoamingDict :
     if str(roaming) == "True" :
-      print(finalRoamingDict[roaming], 1, str(roaming), sep=';', file=fileRoamingDict)
-    else :
       print(finalRoamingDict[roaming], 0, str(roaming), sep=';', file=fileRoamingDict)
+    else :
+      print(finalRoamingDict[roaming], -1, str(roaming), sep=';', file=fileRoamingDict)
   for nat in natDictPozDict :
     try :
       print(finalNatDict[nat], natDictPozDict[nat], nat, sep=';', file=fileNATDict)
@@ -1080,9 +1080,9 @@ if haveToCreateLookupFiles == True :
       print("0", stunserDictPozDict[stunserver], stunserver, sep=';', file=fileStunServerDict)
   for result in finalWebRtcTestDict :
     if str(result) == "20" :
-      print(finalWebRtcTestDict[result], 1, str(result), sep=';', file=fileWebRTCTestDict)
-    else :
       print(finalWebRtcTestDict[result], 0, str(result), sep=';', file=fileWebRTCTestDict)
+    else :
+      print(finalWebRtcTestDict[result], -1, str(result), sep=';', file=fileWebRTCTestDict)
   for country in countryDictPozDict :
     try:
       print(finalCountryDict[country], countryDictPozDict[country], country, sep=';', file=fileCountryDict)
