@@ -12,12 +12,18 @@ with open(HOUR_INPUT_FILE_PATH) as csvfile :
   for line in dictReader :
     HOUR_LOOKUP[str(line[2])] = line[1]
 
+minAndroidVersion = 999999
+maxAndroidVersion = 0
 ANDROID_VERSION_LOOKUP = {}
 ANDROID_VERSION_INPUT_FILE_PATH = "toModel/dict_android_versions.csv"
 with open(ANDROID_VERSION_INPUT_FILE_PATH) as csvfile :
   dictReader = csv.reader(csvfile, delimiter=';')
   for line in dictReader :
     ANDROID_VERSION_LOOKUP[str(line[2])] = line[1]
+    if maxAndroidVersion < int(line[2]) :
+      maxAndroidVersion = int(line[2])
+    if minAndroidVersion > int(line[2]) :
+      minAndroidVersion = int(line[2])
 
 WIFI_LOOKUP = {}
 WIFI_INPUT_FILE_PATH = "toModel/dict_wifi_bandwidth10.csv"
@@ -92,54 +98,61 @@ def make_trace_with_important_fields(fileList) :
         i+=1
         newOutStr = "" + str(line[4])
         timeObj = datetime.datetime.utcfromtimestamp(round(float(line[4]) / 1000.0))
-        if str(line[10]) == "5" :  # networkInfo == CONNECTED
-          #if str(line[24]) != "-1" : # NAT != ERROR
-          newOutStr = newOutStr + ";1;"+str(line[6])
-          hour = timeObj.hour
-          newOutStr = newOutStr + ";" + str(HOUR_LOOKUP[str(hour)])
-          newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(line[7])])
-          if line[9] == 1 :
-            newOutStr = newOutStr + ";" + str(WIFI_LOOKUP[str(line[15])])
-          else :
-            newOutStr = newOutStr + ";" + str(WIFI_LOOKUP["N/A"])
-          if line[9] == 0 :
-            newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP[str(line[18])])
-          else :
-            newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP["N/A"])
-          newOutStr = newOutStr + ";" + str(ROAMING_LOOKUP[str(line[21])])
-          try:
-            newOutStr = newOutStr + ";" + str(NAT_LOOKUP[str(line[24])])
-          except :
-            #if str(line[24]) == "-3" or str(line[24]) == "-1" or str(line[24]) == "1":
-            newOutStr = newOutStr + ";NATERROR"
-            print("NONAT",str(fileName), str(i))
-          try :
-            newOutStr = newOutStr + ";" + str(WEBRTC_TEST_LOOKUP[str(line[33])])
-          except :
-            newOutStr = newOutStr + ";RTCERROR"
-            print("NOWEBRTC",str(fileName), str(i))
-          try :
-            newOutStr = newOutStr + ";" + str(COUNTRY_LOOKUP[str(line[49])])
-          except :
-            newOutStr = newOutStr + ";-1"
-            if str(line[24]) != "-3" and str(line[24]) != "-1" and str(line[24]) != "1" and str(line[33]) != "-3":
-              countryOut[str(line[49])] = 1
-          try :
-            newOutStr = newOutStr + ";" + str(ORG_LOOKUP[str(line[50])])
-          except :
-            newOutStr = newOutStr + ";-1"
-            if str(line[24]) != "-3" and str(line[24]) != "-1" and str(line[24]) != "1" and str(line[33]) != "-3":
-              orgOut[str(line[50])] = 1
-          #else :
-          #  line = prevLine
-          #  checkTheMinusOneNAT = True
+        if str(line[10]) == "5" and str(line[24]) != "1" and str(line[24]) != "-1" and \
+                ( str(line[36]) == "1" or str(line[36]) == "2" or str(line[36]) == "4" or str(line[35]) == "2" or str(line[35]) == "5" ):  # networkInfo == CONNECTED and NATtype is online and onCharger == True
+          if str(line[24]) == "-3" :
+            newOutStr = prevOutStr
+          else:
+            newOutStr = newOutStr + ";1;"+str(line[6])
+            hour = timeObj.hour
+            newOutStr = newOutStr + ";" + str(HOUR_LOOKUP[str(hour)])
+            try:
+              newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(line[7])])
+            except:
+              if int(line[7]) > maxAndroidVersion :
+                newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(maxAndroidVersion)])
+              elif int(line[7]) < minAndroidVersion :
+                newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(minAndroidVersion)])
+              else :
+                newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(int(line[7])+1)])
+            if line[9] == 1 :
+              newOutStr = newOutStr + ";" + str(WIFI_LOOKUP[str(line[15])])
+            else :
+              newOutStr = newOutStr + ";" + str(WIFI_LOOKUP["N/A"])
+            if line[9] == 0 :
+              newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP[str(line[18])])
+            else :
+              newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP["N/A"])
+            newOutStr = newOutStr + ";" + str(ROAMING_LOOKUP[str(line[21])])
+            try:
+              newOutStr = newOutStr + ";" + str(NAT_LOOKUP[str(line[24])])
+            except :
+              #if str(line[24]) == "-3" or str(line[24]) == "-1" or str(line[24]) == "1":
+              newOutStr = newOutStr + ";NATERROR"
+              print("NONAT",str(fileName), str(i))
+            try :
+              newOutStr = newOutStr + ";" + str(WEBRTC_TEST_LOOKUP[str(line[33])])
+            except :
+              newOutStr = newOutStr + ";RTCERROR"
+              print("NOWEBRTC",str(fileName), str(i))
+            try :
+              newOutStr = newOutStr + ";" + str(COUNTRY_LOOKUP[str(line[49])])
+            except :
+              newOutStr = newOutStr + ";-1"
+              if str(line[49]) == "" or str(line[49]) == " " or str(line[49]) == "None":
+                print("NOCOUNTRY", str(fileName), str(i))
+            try :
+              newOutStr = newOutStr + ";" + str(ORG_LOOKUP[str(line[50])])
+            except :
+              newOutStr = newOutStr + ";-1"
+              if str(line[50]) == "" or str(line[50]) == " " or str(line[50]) == "None":
+                print("NOORG", str(fileName), str(i))
         else :
           newOutStr = newOutStr + ";0;"+str(line[6])
         file.write('' + newOutStr + '\n')
         prevLine = line
+        prevOutStr = newOutStr
       file.close()
-  print(str(countryOut))
-  print(str(orgOut))
 
 #MAIN
 fileList = {}
