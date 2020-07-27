@@ -281,16 +281,18 @@ for file in filelist :
           continue
         if not 'appVersion' in mJson :
           continue
-        if not 'connectionMode' in mJson :
-          continue
         if not 'networkInfo' in mJson:
           continue
-        if not 'bandwidth' in mJson['wifiDTO'] :
+        if not 'connectionMode' in mJson :
           continue
-        if not 'networkType' in mJson['mobileDTO'] :
-          continue
-        if not 'roaming' in mJson['mobileDTO'] :
-          continue
+        if 'connectionMode' == 1:
+          if not 'bandwidth' in mJson['wifiDTO'] :
+            continue
+        if 'connectionMode' == 0:
+          if not 'networkType' in mJson['mobileDTO'] :
+            continue
+          if not 'roaming' in mJson['mobileDTO'] :
+            continue
         if not "natResultsDTO" in mJson:
           continue
         if not 'discoveryResult' in mJson["natResultsDTO"]:
@@ -300,22 +302,29 @@ for file in filelist :
         if not 'webRTCResultsDTO' in mJson or not 'exitStatus' in mJson["webRTCResultsDTO"] :
           continue
         ipstring = discoveryJson["natResultsDTO"]['publicIP']
-        try:
-          if ipstring and ipstring is not None and ipstring != 'NA':
-            response = GEOLITE_CITY_READER.city(ipstring)
-            response2 = GEOLITE_ASN_READER.asn(ipstring)
-            mJson["autonomousSystemOrganization"] = str(response2.autonomous_system_organization)
+        if ipstring and ipstring is not None and ipstring != 'NA':
+          try:
+            response = GEOLITE_CITY_READER.city(str(ipstring))
             mJson["countryName"] = str(response.country.name)
-        except AddressNotFoundError:
-          pass
-        except ValueError:
-          pass
-        except TypeError:
-          pass
+          except AddressNotFoundError:
+            pass
+          except ValueError:
+            pass
+          except TypeError:
+            pass
+          try:
+            response2 = GEOLITE_ASN_READER.asn(str(ipstring))
+            mJson["autonomousSystemOrganization"] = str(response2.autonomous_system_organization)
+          except AddressNotFoundError:
+            pass
+          except ValueError:
+            pass
+          except TypeError:
+            pass
         if not 'countryName' in mJson:
-          continue
+          mJson["countryName"] = "N/A"
         if not 'autonomousSystemOrganization' in mJson :
-          continue
+          mJson["autonomousSystemOrganization"] = "N/A"
         if not 'connectionID' in mJson :
           continue
         if mJson['appVersion'] < AV:

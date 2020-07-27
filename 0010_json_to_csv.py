@@ -418,20 +418,31 @@ def toStringV2(record):
     tostring += ';' + replaceNullNA(str(record["locationCaptureTimestamp"]))  # $49
   else:
     tostring += addNAToString(1)
-  try:
-    if ipstring and ipstring is not None and ipstring != 'NA':
-      response = GEOLITE_CITY_READER.city(ipstring)
-      response2 = GEOLITE_ASN_READER.asn(ipstring)
-      tostring += ';' + replaceNullNA(str(response.country.name))  # $50
-      tostring += ';' + replaceNullNA(str(response2.autonomous_system_organization))  # $51
-      tostring += ';' + replaceNullNA(str(response.continent.name))  # $52
-    else:
-      tostring += addNAToString(3)
-  except AddressNotFoundError:
-    tostring += addNAToString(3)
-  except ValueError:
-    tostring += addNAToString(3)
-  except TypeError:
+  if ipstring and ipstring is not None and ipstring != 'NA':
+    country = ";"
+    aso = ";"
+    continent = ";"
+    try:
+      response = GEOLITE_CITY_READER.city(str(ipstring))
+      country += replaceNullNA(str(response.country.name))  # $50
+      continent += replaceNullNA(str(response.continent.name))  # $52
+    except AddressNotFoundError:
+      pass
+    except ValueError:
+      pass
+    except TypeError:
+      pass
+    try:
+      response2 = GEOLITE_ASN_READER.asn(str(ipstring))
+      aso += replaceNullNA(str(response2.autonomous_system_organization))  # $51
+    except AddressNotFoundError:
+      pass
+    except ValueError:
+      pass
+    except TypeError:
+      pass
+    tostring += country + aso + continent # $50 $51 $52
+  else:
     tostring += addNAToString(3)
   tostring += ';' + replaceNullNA(str(record["platform"]))  # $53
   tostring += ';' + replaceNullNA(str(record["sourceRow"]))  # $54
