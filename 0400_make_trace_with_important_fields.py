@@ -82,7 +82,7 @@ if len(sys.argv) > 1 and sys.argv[1] and sys.argv[1] is not None and str.isnumer
 else :
   NUMBER_OF_CORES = 1
 
-
+MAX_ONLINE_DIF=780000
 
 def make_trace_with_important_fields(fileList) :
   orgOut = {}
@@ -91,20 +91,31 @@ def make_trace_with_important_fields(fileList) :
     with open('' + INFILE_PATH + fileName) as csvfile:
       stunnerReader = csv.reader(csvfile, delimiter=';', quotechar='|')
       file = open('' + OUTFILE_PATH + fileName, "a+", encoding="utf-8")
-      prevLine = []
+      prevOnline = 0
+      prevTime = 0
+      prevHour = 0
+      prevOutStr = ""
       #checkTheMinusOneNAT = False
       i=0
       for line in stunnerReader:
         i+=1
-        newOutStr = "" + str(line[4])
-        timeObj = datetime.datetime.utcfromtimestamp(round(float(line[4]) / 1000.0))
+        online = 0
+        time = int(line[4])
+        newOutStr = "" + str(time)
+        timeObj = datetime.datetime.utcfromtimestamp(int(float(time) / 1000.0))
+        hour = timeObj.hour
         if str(line[10]) == "5" and str(line[24]) != "1" and str(line[24]) != "-1" and \
-                ( str(line[36]) == "1" or str(line[36]) == "2" or str(line[36]) == "4" or str(line[35]) == "2" or str(line[35]) == "5" ):  # networkInfo == CONNECTED and NATtype is online and onCharger == True
+            (str(line[36]) == "1" or str(line[36]) == "2" or str(line[36]) == "4" or \
+             str(line[35]) == "2" or str(line[35]) == "5") :  # networkInfo == CONNECTED and NATtype is online and onCharger == True
+          online = 1
           if str(line[24]) == "-3" :
-            newOutStr = prevOutStr
+            if prevOnline == 0 or time-prevTime>MAX_ONLINE_DIF :
+              online = 0
+              newOutStr = newOutStr + ";0"
+            else :
+              newOutStr = newOutStr + prevOutStr[13:]
           else:
-            newOutStr = newOutStr + ";1;"+str(line[6])
-            hour = timeObj.hour
+            newOutStr = newOutStr + ";1"
             newOutStr = newOutStr + ";" + str(HOUR_LOOKUP[str(hour)])
             try:
               newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(line[7])])
@@ -115,12 +126,18 @@ def make_trace_with_important_fields(fileList) :
                 newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(minAndroidVersion)])
               else :
                 newOutStr = newOutStr + ";" + str(ANDROID_VERSION_LOOKUP[str(int(line[7])+1)])
-            if line[9] == 1 :
-              newOutStr = newOutStr + ";" + str(WIFI_LOOKUP[str(line[15])])
+            if str(line[9]) == "1" :
+              try:
+                newOutStr = newOutStr + ";" + str(WIFI_LOOKUP[str(line[15])])
+              except:
+                newOutStr = newOutStr + ";-1"
             else :
               newOutStr = newOutStr + ";" + str(WIFI_LOOKUP["N/A"])
-            if line[9] == 0 :
-              newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP[str(line[18])])
+            if str(line[9]) == "0" :
+              try:
+                newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP[str(line[18])])
+              except:
+                newOutStr = newOutStr + ";-1"
             else :
               newOutStr = newOutStr + ";" + str(MOBNET_LOOKUP["N/A"])
             newOutStr = newOutStr + ";" + str(ROAMING_LOOKUP[str(line[21])])
@@ -129,29 +146,63 @@ def make_trace_with_important_fields(fileList) :
             except :
               #if str(line[24]) == "-3" or str(line[24]) == "-1" or str(line[24]) == "1":
               newOutStr = newOutStr + ";NATERROR"
-              print("NONAT",str(fileName), str(i))
+              print("NONAT",str(line[24]),str(fileName), str(i))
             try :
               newOutStr = newOutStr + ";" + str(WEBRTC_TEST_LOOKUP[str(line[33])])
             except :
               newOutStr = newOutStr + ";RTCERROR"
-              print("NOWEBRTC",str(fileName), str(i))
+              print("NOWEBRTC",str(line[33]),str(fileName), str(i))
             try :
-              newOutStr = newOutStr + ";" + str(COUNTRY_LOOKUP[str(line[49])])
+              if str(line[49]) is None or str(line[49]) == "" :
+                country = "N/A"
+              else :
+                country = str(line[49])
+              newOutStr = newOutStr + ";" + str(COUNTRY_LOOKUP[country])
             except :
               newOutStr = newOutStr + ";-1"
-              if str(line[49]) == "" or str(line[49]) == " " or str(line[49]) == "None":
-                print("NOCOUNTRY", str(fileName), str(i))
             try :
-              newOutStr = newOutStr + ";" + str(ORG_LOOKUP[str(line[50])])
+              if str(line[50]) is None or str(line[50]) == "" :
+                org = "N/A"
+              else :
+                org = str(line[50])
+              newOutStr = newOutStr + ";" + str(ORG_LOOKUP[org])
             except :
               newOutStr = newOutStr + ";-1"
-              if str(line[50]) == "" or str(line[50]) == " " or str(line[50]) == "None":
-                print("NOORG", str(fileName), str(i))
         else :
-          newOutStr = newOutStr + ";0;"+str(line[6])
-        file.write('' + newOutStr + '\n')
-        prevLine = line
+          newOutStr = newOutStr + ";0"
+        if prevOnline == 1 and online == 1 and time-prevTime>MAX_ONLINE_DIF :
+          tmpOutStr = "" + str(prevTime+1)+";0"
+          #'1V '+str(prevOnline)+" "+str(online)+" "+str(time-prevTime)+" "+str(time)+" "+str(prevTime)+'\t' +
+          file.write(tmpOutStr + '\n')
+          file.write(newOutStr + '\n')
+        elif prevOnline == 1 and online == 0 and time-prevTime>MAX_ONLINE_DIF :
+          tmpOutStr = "" + str(prevTime+1)+";0"
+          file.write('' + tmpOutStr + '\n')
+        elif prevOnline == 1 and hour > prevHour :
+          HOUR_UNIT = 1000*60*60
+          startTime = int(time/HOUR_UNIT)*HOUR_UNIT
+          if int(prevHour/10) == 0 :
+            substrStartIndexForPrev = 18
+          else :
+            substrStartIndexForPrev = 19
+          if int(hour/10) ==  0 :
+            substrStartIndexForRec = 18
+          else:
+            substrStartIndexForRec = 19
+          tmpOutStr = "" + str(startTime) + ";1;" + str(HOUR_LOOKUP[str(hour)]) + ";" + prevOutStr[substrStartIndexForPrev:]
+          file.write('' + tmpOutStr + '\n')
+          if newOutStr[substrStartIndexForRec:] != prevOutStr[substrStartIndexForPrev:]:
+            file.write('' + newOutStr + '\n')
+        elif (i == 1) or (prevOnline == 0 and online == 1) or (prevOnline == 1 and online == 0) or \
+            (newOutStr[13:] != prevOutStr[13:]) :
+          file.write(''+ newOutStr + '\n')
+        prevTime = time
+        prevHour = hour
+        prevOnline = online
         prevOutStr = newOutStr
+      if prevOnline == 1 :
+        tmpOutStr = '' + str(prevTime+1) + ";0"
+        file.write('' + tmpOutStr + '\n')
       file.close()
 
 #MAIN

@@ -1,0 +1,20 @@
+set term post eps enhanced color dashlength 2 linewidth 2 "Times-Roman" 22
+set size 2.0,1.0
+set xlabel "PercentOfDay" offset -2,1,0
+set ylabel "Rate"
+#set y2label "Time (sec)"
+set style data histogram
+set style histogram cluster gap 0.9
+set boxwidth 0.9 #relative
+set style fill transparent solid 0.9 noborder
+set xrange [-1:100]
+#set yrange [-0.01:*]
+set xtics scale 0 nomirror rotate by -90 offset character 0.5, 0.25, 0
+#set y2tics nomirror
+#set ytics nomirror
+set key left top
+set logscale y
+#    'sources/distributions/2.out' u ($1-0.75):($4 == 0 ? NaN : $4) w lp ls 1 notitle axes x1y2,\
+#     'sources/distributions/4.out' u ($1-0.75):($4 == 0 ? NaN : $4) w lp ls 2 notitle axes x1y2;
+plot 'offlinePercentDist.out' u 3:xtic(1) t "Offline",\
+     'onlinePercentDist.out' u 3 t "Online";

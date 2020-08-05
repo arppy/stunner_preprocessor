@@ -62,8 +62,7 @@ mkdir out4
 if [ $is_keep_temporary_directories = false ]; then
   rm -r out3  2> /dev/null
 fi
-rm -r out5  2> /dev/null
-mkdir out5
+rm -r out5  2> /dev/null; mkdir out5
 ./0050_prefilterBeforeSessionCreation.awk out4/*  # -v versionSupport=2
 if [ $is_keep_temporary_directories = false ]; then
   rm -r out4
@@ -100,3 +99,17 @@ if [ $is_drop_100percent_offline_session = true ]; then
 fi
 cat peersim_session_NATd.txt > peersim_session_NAT.txt
 rm peersim_session_NATd.txt
+
+
+rm -r out6 2> /dev/null; mkdir out6
+python3 0400_make_trace_with_important_fields.py $number_of_cores  # python3 0400_make_trace_with_important_fields.py 50 &> nohup.out
+rm -r out7 2> /dev/null; mkdir out7
+python3 0401_remove_short_online_post_process.py $number_of_cores  # python3 0401_remove_short_online_post_process.py 50 &> nohup.out
+rm -r out7/only_offline 2> /dev/null; mkdir out7/only_offline
+python3 0402_remove_all_offline_post_process.py $number_of_cores # python3 0402_remove_all_offline_post_process.py 50 &> nohup.out
+rm -r out7/shorts 2> /dev/null; mkdir out7/shorts
+python3 0403_remove_users_with_measurement_less_than_a_day_or_short_online_post_process.py $number_of_cores # python3 0403_remove_users_with_measurement_less_than_a_day_or_short_online_post_process.py 50 &> nohup.out
+rm -r out8 2> /dev/null; mkdir out8
+python3 0404_make_24_hour_session.py $number_of_cores &> nohup.out #python3 0404_make_24_hour_session.py 50 &> nohup.out
+rm -r out8/only_offline 2> /dev/null; mkdir out8/only_offline
+python3 0405_remove_all_offline_post_process.py $number_of_cores # python3 0405_remove_all_offline_post_process.py 50 &> nohup.out

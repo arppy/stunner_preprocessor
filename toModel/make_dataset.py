@@ -121,35 +121,42 @@ GEOLITE_ASN_READER = geoip2.database.Reader('../res/geolite/GeoLite2-ASN.mmdb')
 filelist=[]
 filelist.append('../res/res_v2/stuntest-2019-01-22.csv')
 filelist.append('../res/res_v2/stuntest-2019-10-02Jakxg.csv')
-filelist.append('../res/res_v2/stuntest-2020-02-10DN9pv.csv')
+filelist.append('../res/res_v2/stuntest-2020-04-28DN9pv.csv')
+filelist.append('../res/res_v2/stuntest-2020-07-30epx0N.csv')
 
 
 isHeaderPrinted = False
 NUMBER_OF_TRAINING_SET_SIZE = 178778
 AV=23
-REDUCED_TO = 1
+REDUCED_TO = 10
 MINIMUM_NUMBER_OF_OCCURRENCE_BANDWIDTH = REDUCED_TO
 MINIMUM_NUMBER_OF_OCCURRENCE_MOBNET = REDUCED_TO
 MINIMUM_NUMBER_OF_OCCURRENCE_ORG = REDUCED_TO
 MINIMUM_NUMBER_OF_OCCURRENCE_COUNTRY = REDUCED_TO
-haveToContainsHourOfDay = False
+haveToContainsHourOfDay = True
 haveToContainsDayOfWeek = False
-haveToContainsAndroidVersion = False
+haveToContainsAndroidVersion = True
 haveToContainsConnected = False
 haveToContainsBandwidth = True
 haveToContainsNetworkType = True
-haveToContainsRoaming = False
+haveToContainsRoaming = True
 haveToContainsNAT = True
 haveToContainsSTUNServer = False
 haveToContainsWebRTCTestResult = True
-haveToContainsCountryName = False
-haveToContainsAutonomousSystemOrganization = False
+haveToContainsCountryName = True
+haveToContainsAutonomousSystemOrganization = True
 
-haveToCreateLookupFiles = False
+haveToCreateLookupFiles = True
+haveToCreateConnectionDeltaDistribution = True
 haveToCreateTimeFile = True
 haveToCreateSeparateTestLookupFiles = False
 haveToBandwidthBeReal = False
 MAX_BANDWIDTH = 1083.0
+
+distConnectionEstablished = {}
+numberOfConnectionEstablished = 0
+distConnectionFailed = {}
+numberOfConnectionFailed = 0
 
 outFileNameCSV= ""
 outFileNameSVMLight = ""
@@ -515,6 +522,31 @@ for conid, timegroup in m.items() :
             pairRecord = tmprecord
           record["p2pResult"] = success
           pairRecord["p2pResult"] = success
+          if success == 1 :
+            recordDeltaConnection = int((int(record["channelOpen"]) - int(record["connectionStart"]))/1000)
+            pairRecordDeltaConnection = int((int(pairRecord["channelOpen"]) - int(pairRecord["connectionStart"]))/1000)
+            numberOfConnectionEstablished += 2
+            if recordDeltaConnection in distConnectionEstablished :
+              distConnectionEstablished[recordDeltaConnection] += 1
+            else :
+              distConnectionEstablished[recordDeltaConnection] = 1
+            if pairRecordDeltaConnection in distConnectionEstablished:
+              distConnectionEstablished[pairRecordDeltaConnection] += 1
+            else:
+              distConnectionEstablished[pairRecordDeltaConnection] = 1
+          else :
+            recordDeltaConnection = int((int(record["connectionEnd"]) - int(record["connectionStart"]))/1000)
+            pairRecordDeltaConnection = int((int(pairRecord["connectionEnd"]) - int(pairRecord["connectionStart"]))/1000)
+            numberOfConnectionFailed += 2
+            if recordDeltaConnection in distConnectionFailed :
+              distConnectionFailed[recordDeltaConnection] += 1
+            else :
+              distConnectionFailed[recordDeltaConnection] = 1
+            if pairRecordDeltaConnection in distConnectionFailed:
+              distConnectionFailed[pairRecordDeltaConnection] += 1
+            else:
+              distConnectionFailed[pairRecordDeltaConnection] = 1
+
           p2pConnectionPeer1[newConId] = record
           p2pConnectionPeer2[newConId] = pairRecord
           newConId+=1
@@ -851,6 +883,10 @@ else :
   orgDictLength=poz+1
 if haveToCreateTimeFile == True :
   timeFile = open("times.dat", "w")
+
+if haveToCreateConnectionDeltaDistribution == True :
+  establishedConnectionDeltaDistributionFile = open("establishedConnectionDeltaDistribution.out", "w")
+  failedConnectionDeltaDistributionFile = open("failedConnectionDeltaDistribution.out", "w")
 #print(len(p2pConnectionPeer1))
 
 for newConId in p2pConnectionPeer1 :
@@ -1040,6 +1076,21 @@ fileSVNLight.close()
 fileCSV.close()
 if haveToCreateTimeFile == True :
   timeFile.close()
+
+if haveToCreateConnectionDeltaDistribution == True :
+  sumOfRate= 0
+  for timeKey in sorted(distConnectionEstablished) :
+    rateOfConnectionEstablished = distConnectionEstablished[timeKey]/numberOfConnectionEstablished
+    sumOfRate+=rateOfConnectionEstablished
+    print(str(timeKey),str(distConnectionEstablished[timeKey]),str(rateOfConnectionEstablished),str(sumOfRate), file=establishedConnectionDeltaDistributionFile)
+  sumOfRate= 0
+  for timeKey in sorted(distConnectionFailed) :
+    rateOfConnectionFailed = distConnectionFailed[timeKey]/numberOfConnectionFailed
+    sumOfRate+=rateOfConnectionFailed
+    print(str(timeKey),str(distConnectionFailed[timeKey]),str(rateOfConnectionFailed),str(sumOfRate), file=failedConnectionDeltaDistributionFile)
+
+  establishedConnectionDeltaDistributionFile.close()
+  failedConnectionDeltaDistributionFile.close()
 
 if haveToCreateLookupFiles == True :
   for hour in hoursOfDayPozDict :
