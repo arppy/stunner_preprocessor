@@ -113,3 +113,8 @@ rm -r out8 2> /dev/null; mkdir out8
 python3 0404_make_24_hour_session.py $number_of_cores &> nohup.out #python3 0404_make_24_hour_session.py 50 &> nohup.out
 rm -r out8/only_offline 2> /dev/null; mkdir out8/only_offline
 python3 0405_remove_all_offline_post_process.py $number_of_cores # python3 0405_remove_all_offline_post_process.py 50 &> nohup.out
+# cp -r out8 ../res/out8
+# cd ../res/
+# rm -r trace/ 2> /dev/null
+# mv out8/ trace/
+# rm -r trace/only_offline/

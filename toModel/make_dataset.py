@@ -151,6 +151,11 @@ haveToCreateConnectionDeltaDistribution = True
 haveToCreateTimeFile = True
 haveToCreateSeparateTestLookupFiles = False
 haveToBandwidthBeReal = False
+havaToCreateP2PPairExaminationFile = True
+if havaToCreateP2PPairExaminationFile == True :
+  OUTPUT_PATH_FOR_P2P_PAIR = "p2p_pair/"
+  filesOpen = {}
+
 MAX_BANDWIDTH = 1083.0
 
 distConnectionEstablished = {}
@@ -1072,10 +1077,23 @@ for newConId in p2pConnectionPeer1 :
   #print("#"+listToCsvStr(listIntegerRange))
   print(listToCsvStr(sampleListInteger),file=fileCSV)
   #print(listToCsvStr(sampleList))
+  if havaToCreateP2PPairExaminationFile == True :
+    pairID = [ str(record["androidID"]) , pairRecord["androidID"]]
+    pairID.sort()
+    pairID = "".join(pairID)
+    filenamePairID = OUTPUT_PATH_FOR_P2P_PAIR + pairID
+    if filenamePairID not in filesOpen :
+      filesOpen[filenamePairID] = open(filenamePairID, "a+", encoding="utf-8")
+    print(str(record["p2pResult"]), str(record["timeStamp"]),
+          "1:", str(record["androidID"]), str(webRTCResults), str(record["natResultsDTO"]["discoveryResult"]), str(record["natResultsDTO"]["publicIP"]) ,
+          "2:", str(pairRecord["androidID"]), str(peerWebRTCResults), str(pairRecord["natResultsDTO"]["discoveryResult"]), str(pairRecord["natResultsDTO"]["publicIP"]), file=filesOpen[filenamePairID])
 fileSVNLight.close()
 fileCSV.close()
 if haveToCreateTimeFile == True :
   timeFile.close()
+if havaToCreateP2PPairExaminationFile == True :
+  for file in filesOpen :
+    file.close()
 
 if haveToCreateConnectionDeltaDistribution == True :
   sumOfRate= 0
@@ -1088,7 +1106,6 @@ if haveToCreateConnectionDeltaDistribution == True :
     rateOfConnectionFailed = distConnectionFailed[timeKey]/numberOfConnectionFailed
     sumOfRate+=rateOfConnectionFailed
     print(str(timeKey),str(distConnectionFailed[timeKey]),str(rateOfConnectionFailed),str(sumOfRate), file=failedConnectionDeltaDistributionFile)
-
   establishedConnectionDeltaDistributionFile.close()
   failedConnectionDeltaDistributionFile.close()
 

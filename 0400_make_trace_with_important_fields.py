@@ -104,6 +104,14 @@ def make_trace_with_important_fields(fileList) :
         newOutStr = "" + str(time)
         timeObj = datetime.datetime.utcfromtimestamp(int(float(time) / 1000.0))
         hour = timeObj.hour
+        if int(HOUR_LOOKUP[str(prevHour)]) != -1 and int(int(HOUR_LOOKUP[str(prevHour)]) / 10) == 0 :
+          substrStartIndexForPrev = 18
+        else:
+          substrStartIndexForPrev = 19
+        if int(HOUR_LOOKUP[str(hour)]) != -1 and int(int(HOUR_LOOKUP[str(hour)]) / 10) == 0 :
+          substrStartIndexForRec = 18
+        else:
+          substrStartIndexForRec = 19
         if str(line[10]) == "5" and str(line[24]) != "1" and str(line[24]) != "-1" and \
             (str(line[36]) == "1" or str(line[36]) == "2" or str(line[36]) == "4" or \
              str(line[35]) == "2" or str(line[35]) == "5") :  # networkInfo == CONNECTED and NATtype is online and onCharger == True
@@ -113,7 +121,7 @@ def make_trace_with_important_fields(fileList) :
               online = 0
               newOutStr = newOutStr + ";0"
             else :
-              newOutStr = newOutStr + prevOutStr[13:]
+              newOutStr = newOutStr + ";1;" + str(HOUR_LOOKUP[str(hour)]) + ";" + prevOutStr[substrStartIndexForPrev:] # + "GGGGGG" + str(prevHour) + " " + str(int(HOUR_LOOKUP[str(prevHour)]) != -1) + " " + str(int(int(HOUR_LOOKUP[str(prevHour)]) / 10) == 0) + " " + str(substrStartIndexForRec) + " "
           else:
             newOutStr = newOutStr + ";1"
             newOutStr = newOutStr + ";" + str(HOUR_LOOKUP[str(hour)])
@@ -181,14 +189,6 @@ def make_trace_with_important_fields(fileList) :
         elif prevOnline == 1 and hour > prevHour :
           HOUR_UNIT = 1000*60*60
           startTime = int(time/HOUR_UNIT)*HOUR_UNIT
-          if int(prevHour/10) == 0 :
-            substrStartIndexForPrev = 18
-          else :
-            substrStartIndexForPrev = 19
-          if int(hour/10) ==  0 :
-            substrStartIndexForRec = 18
-          else:
-            substrStartIndexForRec = 19
           tmpOutStr = "" + str(startTime) + ";1;" + str(HOUR_LOOKUP[str(hour)]) + ";" + prevOutStr[substrStartIndexForPrev:]
           file.write('' + tmpOutStr + '\n')
           if newOutStr[substrStartIndexForRec:] != prevOutStr[substrStartIndexForPrev:]:

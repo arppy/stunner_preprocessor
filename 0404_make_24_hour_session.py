@@ -43,9 +43,12 @@ def make_24_hour_session(fileList) :
               file = open('' + OUTFILE_PATH + fileName + str(day), "a+", encoding="utf-8")
               #if str(prevLine[1]) == "1" :
               #  print(fileName + str(day) )
-              outStr = "" + str(dayTimeStamp) + ";" + str(prevLine[1])
-              for record in prevLine[2:]:
-                outStr += ";" + str(record)
+              if str(prevLine[1]) == "1" :
+                outStr = "" + str(prevDay + (1000 * 60 * 60 * 24)) + ";1;-1"
+                for record in prevLine[3:]:
+                  outStr += ";" + str(record)
+              else :
+                outStr = "" + str(prevDay + (1000 * 60 * 60 * 24)) + ";0"
               file.write('' + outStr + '\n')
               if prevDay + (1000 * 60 * 60 * 24) < dayTimeStamp :
                 prevDay += (1000 * 60 * 60 * 24)
