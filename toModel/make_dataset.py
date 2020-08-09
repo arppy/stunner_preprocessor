@@ -894,6 +894,9 @@ if haveToCreateConnectionDeltaDistribution == True :
   failedConnectionDeltaDistributionFile = open("failedConnectionDeltaDistribution.out", "w")
 #print(len(p2pConnectionPeer1))
 
+if havaToCreateP2PPairExaminationFile == True :
+  numberOfOpenFile = 0
+
 for newConId in p2pConnectionPeer1 :
   sampleListOneHot = []
   sampleListInteger = []
@@ -1081,9 +1084,16 @@ for newConId in p2pConnectionPeer1 :
     pairID = [ str(record["androidID"]) , pairRecord["androidID"]]
     pairID.sort()
     pairID = "".join(pairID)
+    pairID = pairID.replace("N/A","NA")
     filenamePairID = OUTPUT_PATH_FOR_P2P_PAIR + pairID
+    if numberOfOpenFile >= 1000 :
+      for fileN in list(filesOpen):
+        filesOpen[fileN].close()
+        del filesOpen[fileN]
+        numberOfOpenFile -= 1
     if filenamePairID not in filesOpen :
       filesOpen[filenamePairID] = open(filenamePairID, "a+", encoding="utf-8")
+      numberOfOpenFile+=1
     print(str(record["p2pResult"]), str(record["timeStamp"]),
           "1:", str(record["androidID"]), str(webRTCResults), str(record["natResultsDTO"]["discoveryResult"]), str(record["natResultsDTO"]["publicIP"]) ,
           "2:", str(pairRecord["androidID"]), str(peerWebRTCResults), str(pairRecord["natResultsDTO"]["discoveryResult"]), str(pairRecord["natResultsDTO"]["publicIP"]), file=filesOpen[filenamePairID])
