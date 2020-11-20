@@ -122,11 +122,10 @@ filelist=[]
 filelist.append('../res/res_v2/stuntest-2019-01-22.csv')
 filelist.append('../res/res_v2/stuntest-2019-10-02Jakxg.csv')
 filelist.append('../res/res_v2/stuntest-2020-04-28DN9pv.csv')
-filelist.append('../res/res_v2/stuntest-2020-07-30epx0N.csv')
+filelist.append('../res/res_v2/stuntest-2020-09-08epx0N.csv')
 
 
 isHeaderPrinted = False
-NUMBER_OF_TRAINING_SET_SIZE = 178778
 AV=23
 REDUCED_TO = 10
 MINIMUM_NUMBER_OF_OCCURRENCE_BANDWIDTH = REDUCED_TO
@@ -147,11 +146,12 @@ haveToContainsCountryName = True
 haveToContainsAutonomousSystemOrganization = True
 
 haveToCreateLookupFiles = True
-haveToCreateConnectionDeltaDistribution = True
+haveToCreateConnectionDeltaDistribution = False
 haveToCreateTimeFile = True
 haveToCreateSeparateTestLookupFiles = False
+NUMBER_OF_TRAINING_SET_SIZE = 178778
 haveToBandwidthBeReal = False
-havaToCreateP2PPairExaminationFile = True
+havaToCreateP2PPairExaminationFile = False
 if havaToCreateP2PPairExaminationFile == True :
   OUTPUT_PATH_FOR_P2P_PAIR = "p2p_pair/"
   filesOpen = {}
@@ -1010,13 +1010,13 @@ for newConId in p2pConnectionPeer1 :
     listIntegerRange.append(integerDict)
   ####roaming
   if haveToContainsRoaming == True :
-    if str(record["mobileDTO"]["roaming"]) == "true" :
+    if str(record["mobileDTO"]["roaming"]) == "True" or str(record["mobileDTO"]["roaming"]) == "true":
       sampleListOneHot.append(1)
       sampleListInteger.append(integerDict + 1)
     else :
       sampleListOneHot.append(0)
       sampleListInteger.append(integerDict + 0)
-    if str(pairRecord["mobileDTO"]["roaming"]) == "true" :
+    if str(pairRecord["mobileDTO"]["roaming"]) == "True" or str(pairRecord["mobileDTO"]["roaming"]) == "true":
       sampleListOneHot.append(1)
       sampleListInteger.append(integerDict + 1)
     else :
@@ -1151,7 +1151,7 @@ if haveToCreateLookupFiles == True :
     except KeyError :
       print("0", mobnetDictPozDict[type_mobnet], type_mobnet, sep=';', file=fileMobileNetTypeDict)
   for roaming in finalRoamingDict :
-    if str(roaming) == "True" :
+    if str(roaming) == "True" or str(roaming) == "true":
       print(finalRoamingDict[roaming], 0, str(roaming), sep=';', file=fileRoamingDict)
     else :
       print(finalRoamingDict[roaming], -1, str(roaming), sep=';', file=fileRoamingDict)
